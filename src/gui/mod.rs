@@ -157,6 +157,8 @@ impl App for Application {
             // A new message for the console.
             Message::Console( inner ) => return self.console.update(inner),
 
+            Message::Selector( inner ) => return self.selector.update(inner),
+
             // The USB thread crashed and the console router is closed.
             Message::USBThreadCrashed => if self.router.is_some() {
                 // Remove the current router from the application.

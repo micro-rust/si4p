@@ -7,6 +7,8 @@ pub enum Message {
     /// An internal message for the console.
     Console( super::console::Message ),
 
+    Selector( super::selector::Message ),
+
     /// Indicates a request for a USB defmt connection.
     DefmtConnect( (u16, u16), u8, u8, u8 ),
 
