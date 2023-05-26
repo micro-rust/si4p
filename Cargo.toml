@@ -1,0 +1,59 @@
+[package]
+name = "defmthost"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
+
+[dependencies.defmt-decoder]
+version = "=0.3.6"
+
+[dependencies.defmt-parser]
+version = "=0.3.2"
+
+[dependencies.iced]
+version = "0.9"
+optional = true
+features = [
+    "wgpu", "tokio", "system",
+    "palette",
+]
+
+[dependencies.iced_native]
+version = "0.10.3"
+optional = true
+
+[dependencies.lazy_static]
+version = "1"
+
+[dependencies.rusb]
+version = "=0.9.2"
+
+[dependencies.seqid]
+git = "https://github.com/micro-rust/seqid"
+
+[dependencies.tokio]
+version = "1"
+features = [
+    "rt", "sync",
+]
+
+
+[features]
+
+# This feature indicates the application is built.
+application = []
+
+# This features indicates the application is built with a terminal UI.
+tui = ["application"]
+
+# This feature indicates the application is built with a graphical UI.
+gui = ["application", "iced", "iced_native"]
+
+
+
+[[bin]]
+name = "defmthost"
+required-features = ["application"]
