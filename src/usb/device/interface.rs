@@ -8,7 +8,9 @@ use rusb::{
     UsbContext,
 };
 
-use super::USBConfig;
+use super::{
+    USBConfig, USBEndpoint,
+};
 
 
 
@@ -31,6 +33,13 @@ pub struct USBInterface {
 
     /// Interface class, subclass and protocol.
     class: (u8, u8, u8),
+
+    /// List of all endpoints in this interface.
+    endpoints: Vec<USBEndpoint>,
+
+    #[cfg(feature = "application")]
+    /// GUI flag that indicates if the display information is expanded.
+    pub expanded: bool,
 }
 
 impl USBInterface {
@@ -64,6 +73,16 @@ impl USBInterface {
         self.class
     }
 
+    /// Returns the number of endpoints of this configuration.
+    pub fn nendpoints(&self) -> usize {
+        self.endpoints.len()
+    }
+
+    /// Returns an iterator over all the endpoints of the device.
+    pub fn endpoints<'a>(&'a self) -> impl Iterator<Item = &'a USBEndpoint> {
+        self.endpoints.iter()
+    }
+
     /// Builds a new interface descriptor.
     pub fn build<'a, C: UsbContext>(handle: &'a DeviceHandle<C>, descriptor: &'a InterfaceDescriptor, language: Language, config: &'a USBConfig) -> Self {
         // Get the string description.
@@ -72,7 +91,7 @@ impl USBInterface {
             Ok(s) => s,
         };
 
-        Self {
+        let mut interface = Self {
             description,
             ids: config.ids(),
             index: config.index(),
@@ -83,51 +102,21 @@ impl USBInterface {
                 descriptor.sub_class_code(),
                 descriptor.protocol_code(),
             ),
+            endpoints: Vec::new(),
+
+            #[cfg(feature = "application")]
+            expanded: false,
+        };
+
+        // Parse the endpoints.
+        for endpoint in descriptor.endpoint_descriptors() {
+            // Create the new enpoint.
+            let endpoint = USBEndpoint::build(handle, &endpoint, language, &interface);
+
+            // Add the endpoint to the list.
+            interface.endpoints.push(endpoint);
         }
-    }
 
-    #[cfg(feature = "application")]
-    pub fn view(&self) -> iced::Element<crate::gui::Message> {
-        use iced::{
-            widget::{
-                Button, Column, Row, Text,
-            },
-        };
-
-        // Build the information section.
-        let information = {
-            // Build the interface name.
-            let name = Text::new( &self.description );
-
-            // Build the number and alternate setting.
-            let info = {
-                // Build the interface number.
-                let number = Text::new( format!("ID: {:02X}h", self.number) );
-
-                // Build the alternate setting.
-                let setting = Text::new( format!("Setting: {:02X}h", self.alternate) );
-
-                Row::new()
-                    .push(number)
-                    .push(setting)
-            };
-
-            // Build the class.
-            let class = Text::new( format!("Class: {:02X}:{:02X}:{:02X}", self.class.0, self.class.1, self.class.2) );
-
-            Column::new()
-                .push(name)
-                .push(info)
-                .push(class)
-        };
-
-        // Build the connect button.
-        let button = Button::new( "Connect" )
-            .on_press( crate::gui::Message::DefmtConnect( self.ids, self.index, self.number, self.alternate ) );
-
-        Row::new()
-            .push(information)
-            .push(button)
-            .into()
+        interface
     }
 }

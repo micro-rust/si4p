@@ -3,11 +3,13 @@
 
 
 mod config;
+mod endpoint;
 mod interface;
 
 
 
 pub use config::USBConfig;
+pub use endpoint::USBEndpoint;
 pub use interface::USBInterface;
 
 use rusb::{
@@ -39,6 +41,14 @@ pub struct USBDevice {
 
     /// List of all the configurations of the device.
     configs: Vec<USBConfig>,
+
+    #[cfg(feature = "application")]
+    /// GUI flag that indicates if the display information is expanded.
+    pub expanded: bool,
+
+    #[cfg(feature = "application")]
+    /// GUI flag that indicates if the config list is expanded.
+    pub showlist: bool,
 }
 
 impl USBDevice {
@@ -52,6 +62,11 @@ impl USBDevice {
         &self.name
     }
 
+    /// Returns a reference to the serial string.
+    pub fn serial(&self) -> &String {
+        &self.serial
+    }
+
     /// Returns the bus to which this device is connected.
     pub fn bus(&self) -> (u8, u8) {
         self.bus
@@ -62,9 +77,19 @@ impl USBDevice {
         self.ids
     }
 
+    /// Returns the number of configurations.
+    pub fn nconfigs(&self) -> usize {
+        self.configs.len()
+    }
+
     /// Returns an iterator over all the configurations of the device.
     pub fn configs<'a>(&'a self) -> impl Iterator<Item = &'a USBConfig> {
         self.configs.iter()
+    }
+
+    /// Returns an iterator over all the configurations of the device.
+    pub fn configs_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut USBConfig> {
+        self.configs.iter_mut()
     }
 
     /// Builds the device descriptor.
@@ -122,6 +147,10 @@ impl USBDevice {
             ids,
             serial,
             configs: Vec::with_capacity( descriptor.num_configurations() as usize ),
+            #[cfg(feature = "application")]
+            expanded: false,
+            #[cfg(feature = "application")]
+            showlist: false,
         };
 
         for c in 0..descriptor.num_configurations() {

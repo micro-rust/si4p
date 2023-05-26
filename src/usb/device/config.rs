@@ -30,7 +30,7 @@ pub struct USBConfig {
 
     #[cfg(feature = "application")]
     /// GUI flag that indicates if the display information is expanded.
-    expanded: bool,
+    pub expanded: bool,
 }
 
 impl USBConfig {
@@ -49,9 +49,19 @@ impl USBConfig {
         self.index
     }
 
+    /// Returns the number of interfaces of this configuration.
+    pub fn ninterfaces(&self) -> usize {
+        self.ifaces.len()
+    }
+
     /// Returns an iterator over all the interfaces of the device.
     pub fn interfaces<'a>(&'a self) -> impl Iterator<Item = &'a USBInterface> {
         self.ifaces.iter()
+    }
+
+    /// Returns an iterator over all the interfaces of the device.
+    pub fn interfaces_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut USBInterface> {
+        self.ifaces.iter_mut()
     }
 
     /// Builds the configuration descriptor.
@@ -69,7 +79,7 @@ impl USBConfig {
             index: descriptor.number(),
             ifaces: Vec::with_capacity( descriptor.num_interfaces() as usize ),
             #[cfg(feature = "application")]
-            expanded: true,
+            expanded: false,
         };
 
         // Parse the interfaces.
@@ -84,58 +94,5 @@ impl USBConfig {
         }
 
         config
-    }
-
-    #[cfg(feature = "application")]
-    pub fn view(&self) -> iced::Element<crate::gui::Message> {
-        use iced::{
-            widget::{
-                Button, Column, Row, Text,
-            },
-        };
-
-        // Create the topbar
-        let topbar = {
-            // Build the information section.
-            let info = {
-                // Buidl the configuration number
-                let number = Text::new( format!("CFG {}", self.index) );
-
-                // Build the description
-                let description = Text::new( &self.description );
-
-                Column::new()
-                    .push(number)
-                    .push(description)
-            };
-
-            // Builds the button
-            let mut collapse = Button::new( "X" )
-                .on_press( crate::gui::Message::USBConfigExpanded( self.ids, self.index, !self.expanded ) );
-
-            Row::new()
-                .push(info)
-                .push(collapse)
-        };
-
-        // If not expanded, show no more information.
-        if !self.expanded {
-            return topbar.into();
-        }
-
-        // Create the information on the interfaces.
-        let interfaces = self.ifaces.iter()
-            .fold(Column::new(), |col, iface| col.push(iface.view()));
-
-        Column::new()
-            .push(topbar)
-            .push(interfaces)
-            .into()
-    }
-
-    #[cfg(feature = "application")]
-    /// Expands the display information.
-    pub fn expanded(&mut self, expanded: bool) {
-        self.expanded = expanded;
     }
 }
