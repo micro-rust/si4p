@@ -2,6 +2,8 @@
 
 
 
+use std::path::PathBuf;
+
 use super::device::USBDevice;
 
 
@@ -9,7 +11,10 @@ use super::device::USBDevice;
 #[derive(Clone, Debug)]
 pub enum Command {
     /// Open the device with the given VID, PID and (optional) serial number.
-    Open( u16, u16, Option<String> ),
+    Open( usize, u8, u8, u8, u8, (u8, u8) ),
+
+    /// Sets the defmt file.
+    SetDefmtFile( std::sync::Arc<[u8]> ),
 
     /// A warning that the hotplug handler was dropped.
     HotplugDropped,

@@ -6,5 +6,5 @@
 pub mod common;
 pub mod usb;
 
-#[cfg(feature = "gui")]
+//#[cfg(feature = "gui")]
 pub mod gui;

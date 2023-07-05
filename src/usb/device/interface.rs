@@ -3,9 +3,8 @@
 
 
 use rusb::{
-    Context, DeviceHandle,
-    InterfaceDescriptor, Language,
-    UsbContext,
+    DeviceHandle, InterfaceDescriptor,
+    Language, UsbContext,
 };
 
 use super::{
@@ -81,6 +80,11 @@ impl USBInterface {
     /// Returns an iterator over all the endpoints of the device.
     pub fn endpoints<'a>(&'a self) -> impl Iterator<Item = &'a USBEndpoint> {
         self.endpoints.iter()
+    }
+
+    /// Returns an iterator over all the endpoints of the device.
+    pub fn endpoints_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut USBEndpoint> {
+        self.endpoints.iter_mut()
     }
 
     /// Builds a new interface descriptor.

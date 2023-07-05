@@ -4,9 +4,8 @@
 
 
 use rusb::{
-    Context, DeviceHandle,
-    ConfigDescriptor, Language,
-    UsbContext,
+    DeviceHandle, ConfigDescriptor,
+    Language, UsbContext,
 };
 
 use super::{

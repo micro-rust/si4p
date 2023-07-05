@@ -10,7 +10,13 @@ pub enum Message {
     Selector( super::selector::Message ),
 
     /// Indicates a request for a USB defmt connection.
-    DefmtConnect( (u16, u16), u8, u8, u8 ),
+    DefmtConnect( usize, u8, u8, u8, u8, (u8, u8) ),
+
+    /// Select defmt file.
+    SelectDefmtFile,
+
+    /// A new defmt file was picked.
+    NewDefmtFile( std::sync::Arc<[u8]> ),
 
     /// Indicates a change in the expansion status of a USB config display.
     USBConfigExpanded( (u16, u16), u8, bool ),

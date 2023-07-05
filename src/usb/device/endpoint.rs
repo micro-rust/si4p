@@ -98,24 +98,4 @@ impl USBEndpoint {
 
         endpoint
     }
-
-    #[cfg(feature = "application")]
-    pub fn view(&self) -> iced::Element<crate::gui::Message> {
-        use iced::{
-            widget::{
-                Button, Column, Row, Text,
-            },
-        };
-
-        // Create the title.
-        let title = Text::new( format!("Endpoint {}", self.enumber) );
-
-        // Create the information.
-        let information = Text::new(format!("{:?} {:?} @ {}", self.transfer, self.direction, self.address));
-
-        Column::new()
-            .push(title)
-            .push(information)
-            .into()
-    }
 }

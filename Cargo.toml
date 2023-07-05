@@ -8,17 +8,18 @@ edition = "2021"
 [dependencies]
 
 [dependencies.defmt-decoder]
-version = "=0.3.6"
+version = "=0.3.7"
+features = ["unstable"]
 
 [dependencies.defmt-parser]
-version = "=0.3.2"
+version = "=0.3.3"
 
 [dependencies.iced]
 version = "0.9"
 optional = true
 features = [
     "wgpu", "tokio", "system",
-    "palette",
+    "palette", "debug"
 ]
 
 [dependencies.iced_native]
@@ -37,8 +38,14 @@ git = "https://github.com/micro-rust/seqid"
 [dependencies.tokio]
 version = "1"
 features = [
-    "rt", "sync",
+    "rt", "sync", "fs", "io-util",
 ]
+
+[dependencies.object]
+version = "0.31"
+
+[dependencies.rfd]
+version = "0.11"
 
 
 [features]

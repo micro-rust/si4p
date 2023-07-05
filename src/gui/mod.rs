@@ -17,10 +17,6 @@ use iced::{
     executor,
 
     Application as App, Command, Element, Theme,
-
-    widget::{
-        Column,
-    },
 };
 
 pub use message::Message;
@@ -44,7 +40,7 @@ pub struct Application {
     console: console::Console,
 
     /// The selector of USB devices.
-    selector: selector::USBSelector,
+    selector: selector::USBSelector<Message>,
 
     /// The router for the console messages.
     router: Option<Arc<Mutex<Router<console::Entry, Message>>>>,
@@ -132,7 +128,7 @@ impl App for Application {
         };
 
         // Create the USB selector.
-        let selector = selector::USBSelector::new(usbcmd.clone());
+        let selector = selector::USBSelector::new( Self::selectormsg );
 
         // Spawn the USB logger in a blocking thread.
         std::thread::spawn( move || { usb.run() } );
@@ -168,6 +164,19 @@ impl App for Application {
                 return self.console.update( console::Message::New( console::Entry::usbcrash() ) );
             },
 
+            // Selects a new defmt file.
+            Message::SelectDefmtFile => return Command::perform( defmtfile(), |m| m ),
+
+            // New defmt file.
+            Message::NewDefmtFile( bytes ) => {
+                println!("New defmt file bytes");
+
+                self.usbcommand( USBCommand::SetDefmtFile( bytes ) );
+            },
+
+            // A new defmt connection was requested.
+            Message::DefmtConnect(key, idx, num, alt, ep, bus) => self.usbcommand( USBCommand::Open(key, idx, num, alt, ep, bus) ),
+
             _ =>(),
         }
 
@@ -175,9 +184,19 @@ impl App for Application {
     }
 
     fn view(&self) -> Element<Self::Message> {
+        // Create the file button.
+        let filebtn = iced::widget::Button::new( "Select defmt file" )
+            .on_press( Message::SelectDefmtFile );
+
+
         iced::widget::Row::new()
             .push(self.console.view())
-            .push(self.selector.view())
+            .push(
+                iced::widget::Column::new()
+                    .width(iced::Length::FillPortion(20))
+                    .push(filebtn)
+                    .push(self.selector.view())
+            )
             .into()
     }
 
@@ -198,9 +217,69 @@ impl App for Application {
     }
 }
 
+impl Application {
+    /// Default function to turn selector message into a message.
+    pub fn selectormsg(msg: selector::Message) -> Message {
+        Message::Selector( msg )
+    }
+
+    /// Sends an USB command.
+    fn usbcommand(&mut self, cmd: USBCommand) {
+        match self.usbcmd.try_send(cmd) {
+            Err(e) => println!("Failed to send USB command"),
+            Ok(_) => (),
+        }
+    }
+}
+
 impl Drop for Application {
     fn drop(&mut self) {
         // Make sure to send the drop signal to the USB thread.
         let _ = self.usbcmd.try_send( USBCommand::Quit );
     }
+}
+
+
+
+/// Async function to get a file and read it.
+async fn defmtfile() -> Message {
+    use rfd::AsyncFileDialog;
+    use tokio::{
+        fs::File,
+        io::{
+            AsyncReadExt, BufReader,
+        },
+    };
+
+    // Get the file.
+    let maybe = AsyncFileDialog::new()
+        .set_directory("/")
+        .pick_file()
+        .await;
+
+    // Check if anything was chosen.
+    let path = match maybe.as_ref() {
+        None => return Message::None,
+        Some(f) => f.path().clone(),
+    };
+
+    // Create the file.
+    let file = match File::open(path).await {
+        Err(_) => return Message::None,
+        Ok(f) => f,
+    };
+
+    // Create the buffer.
+    let mut data = Vec::new();
+
+    // Create the reader.
+    let mut reader = tokio::io::BufReader::new(file);
+
+    // Read the file.
+    match reader.read_to_end(&mut data).await {
+        Err(_) => return Message::None,
+        Ok(_) => (),
+    }
+
+    Message::NewDefmtFile( std::sync::Arc::from(data) )
 }
