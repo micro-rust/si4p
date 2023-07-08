@@ -48,6 +48,8 @@ To select which USB device to use, select it using the dropdown on the right of 
 
 ### Planned improvements
 
+ - Cleaner code
+
  - ELF binary file reloading
 
  - Better / More resilient USB connectivity
