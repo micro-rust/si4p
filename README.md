@@ -62,7 +62,7 @@ To select which USB device to use, select it using the dropdown on the right of 
 
 ## Contributing
 
-
+Any contribution intentionally submitted for inclusion in the work by you shall be licensed under the Mozilla Public License Version 2.0, without any additional terms and conditions.
 
 ## License
 This work is licensed under
