@@ -20,13 +20,15 @@ or with the terminal interface (WIP)
 cargo install defmthost --features tui
 ```
 
+Please consider that GUI applications are heavy and pull a lot of dependencies. This application may take a while to compile. I ask for your patience. In the future I plan to distribute precompiled binaries for common platforms (Linux, Windows).
+
 ## GUI - Getting started
 
 ![Default GUI](/res/DemoDEFMThost.png "Default GUI Example")
 
 To get started with the GUI, select the ELF file containing the `defmt` data. This will open an OS native dialog to select the file.
 
-To select which USB device to use, select it using the dropdown on the right of the screen. These dropdowns allow the selection of a specific configuration, interface and enpoint, although only IN Bulk endpoints in CDC ACM interfaces are currently allowed.
+To select which USB device to use, select it using the dropdown on the right of the screen. These dropdowns allow the selection of a specific configuration, interface and enpoint, although only Input Bulk endpoints in CDC ACM interfaces are currently allowed (this is to allow compatibility with UART - USB bridges like FT232, CS2120, etc...).
 
 ![Selection Dropdown](/res/SelectionDropdown.png "Selection Dropdown")
 
@@ -35,7 +37,7 @@ To select which USB device to use, select it using the dropdown on the right of 
 ### What works?
 
  - USB device selection (max. one device active per application instance)
- 
+
  - Connection over USB to `defmtusb` devices
 
  - Colored console logs
@@ -53,3 +55,15 @@ To select which USB device to use, select it using the dropdown on the right of 
  - Dinamic stylesheets and themes (with hot reload)
 
  - More ergonomic UI / UX
+
+ - Precompiled binaries for Linux and Windows
+
+## Contributing
+
+
+
+## License
+This work is licensed under
+
+ - Mozilla Public License Version 2.0 [LICENSE-MPL](/LICENSE-MPL)
+ 
