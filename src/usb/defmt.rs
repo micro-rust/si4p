@@ -26,6 +26,8 @@ pub struct DefmtInfo {
     pub(super) locations: Locations,
 
     /// The encoding of this ELF.
+    /// Keep this field for debugging.
+    #[allow(dead_code)]
     pub(super) encoding: Encoding,
 }
 

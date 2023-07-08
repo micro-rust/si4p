@@ -274,7 +274,7 @@ impl<M: Into<super::Message>> USBSelector<M> {
     }
 
     /// Builds the view of an endpoint.
-    fn endpoint(&self, endpoint: &USBEndpoint, key: usize, idx: u8, num: u8, bus: (u8, u8)) -> iced::Element<super::Message> {
+    fn endpoint(&self, endpoint: &USBEndpoint, _: usize, idx: u8, num: u8, bus: (u8, u8)) -> iced::Element<super::Message> {
         // Build the title.
         let title = {
             let label = Text::new(format!("Endpoint {}", endpoint.enumber()));

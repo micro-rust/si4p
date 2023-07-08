@@ -25,7 +25,4 @@ pub(super) struct Theme {
 
     /// Log level colors.
     pub(super) level: [Arc<Color>; 5],
-
-    /// Global container.
-    pub(super) global: Arc<Container>,
 }

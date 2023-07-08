@@ -11,7 +11,7 @@ use iced::{
     Command, Length,
 
     alignment::{
-        Horizontal, Vertical,
+        Horizontal,
     },
 
     widget::{
@@ -153,18 +153,6 @@ impl Console {
             }),
         };
 
-        let global = match theme.container.get("console-global") {
-            Some(data) => data.clone(),
-            _ => Arc::new( Container {
-                color: Arc::new( Color::new(255, 255, 255, 1.0) ),
-                border: Arc::new( Border {
-                    color: Arc::new( Color::new(0, 0, 0, 0.0) ), 
-                    radius: 0.0,
-                    width: 0.0,
-                })
-            }),
-        };
-
         let topbar = match theme.container.get("console-topbar") {
             Some(data) => data.clone(),
             _ => Arc::new( Container {
@@ -178,10 +166,7 @@ impl Console {
         };
 
         let picklist = match theme.picklist.get("console-list") {
-            Some(data) => {
-                println!("FOUND THE CONSOLELIST");
-                data.clone()
-            },
+            Some(data) => data.clone(),
             _ => Arc::new( Picklist {
                 state: [
                     Arc::new( State {
@@ -232,7 +217,7 @@ impl Console {
             Arc::new( Color::new(255,   0,   0, 1.0) ),
         ];
 
-        Theme { background, topbar, picklist, text, level, global, }
+        Theme { background, topbar, picklist, text, level, }
     }
 
     /// Builds the topbar.

@@ -50,6 +50,8 @@ pub struct Application {
     usbcmd: Sender<USBCommand>,
 
     /// Application theme.
+    /// Keep the theme alive until it is swapped.
+    #[allow(dead_code)]
     theme: Arc<marcel::theme::Theme>,
 }
 
@@ -115,7 +117,7 @@ impl App for Application {
 
             // Create the new theme and parse it.
             let mut theme = Theme::new();
-            let n = theme.parse( &serial ).expect("Failed to parse prechecked theme");
+            let _ = theme.parse( &serial ).expect("Failed to parse prechecked theme");
 
             // Parse the theme.
             Arc::new( theme )
@@ -173,10 +175,10 @@ impl App for Application {
             // A new message for the console.
             Message::Console( inner ) => return self.console.update(inner),
 
-            /// A message for the USB selector.
+            // A message for the USB selector.
             Message::Selector( inner ) => return self.selector.update(inner),
 
-            /// A message for the USB handler.
+            // A message for the USB handler.
             Message::USB( command ) => self.usbcommand( command ),
 
             // The USB thread crashed and the console router is closed.

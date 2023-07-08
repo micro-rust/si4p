@@ -29,11 +29,7 @@ impl Hotplug {
         use rusb::DeviceList;
 
         // Get the list of devices.
-        let list = match DeviceList::new() {
-            Err(e) => panic!(),
-
-            Ok(list) => list,
-        };
+        let list = DeviceList::new()?;
 
         // Arriving devices.
         let arriving = self.arriving(&list);

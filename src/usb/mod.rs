@@ -51,6 +51,9 @@ lazy_static::lazy_static!{
 
 pub struct USBLogger {
     /// Context of the USB logger.
+    /// Keep this in here for now to have a USB context alive, but maybe this
+    /// is unnecesary and we can eliminate this field.
+    #[allow(dead_code)]
     context: Context,
 
     /// A channel to receive commands.
@@ -224,6 +227,7 @@ impl USBLogger {
     }
 
     /// Sends a debug entry to the console.
+    #[allow(dead_code)]
     fn debug<S>(&mut self, text: S) where String: From<S> {
         // Create the entry.
         let entry = Entry::debug( Source::Host, String::from(text) );
