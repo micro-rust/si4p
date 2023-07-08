@@ -64,6 +64,8 @@ git = "https://github.com/micro-rust/seqid"
 
 [features]
 
+default = ["gui"]
+
 # This feature indicates the application is built.
 application = []
 
