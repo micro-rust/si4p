@@ -2,16 +2,17 @@
 
 
 
-use std::path::PathBuf;
-
-use super::device::USBDevice;
+use super::{
+    common::USBTarget,
+    device::USBDevice,
+};
 
 
 
 #[derive(Clone, Debug)]
 pub enum Command {
     /// Open the device with the given VID, PID and (optional) serial number.
-    Open( usize, u8, u8, u8, u8, (u8, u8) ),
+    DefmtOpen( USBTarget ),
 
     /// Sets the defmt file.
     SetDefmtFile( std::sync::Arc<[u8]> ),

@@ -47,7 +47,7 @@ impl<E, M: Clone> Router<E, M> {
             match router.rx.recv().await {
                 // There is a received message.
                 Some(msg) => {
-                    println!("New console message");
+                    //println!("New console message");
                     (router.map)(msg)
                 },
 

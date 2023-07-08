@@ -82,9 +82,9 @@ impl USBEndpoint {
     }
 
     /// Builds a new endpoint descriptor.
-    pub fn build<'a, C: UsbContext>(handle: &'a DeviceHandle<C>, descriptor: &'a EndpointDescriptor, language: Language, iface: &'a USBInterface) -> Self {
+    pub fn build<'a, C: UsbContext>(_: &'a DeviceHandle<C>, descriptor: &'a EndpointDescriptor, _: Language, iface: &'a USBInterface) -> Self {
         // Create the endpoint.
-        let mut endpoint = Self {
+        let endpoint = Self {
             ids: iface.ids(),
             index: iface.index(),
             number: iface.number(),

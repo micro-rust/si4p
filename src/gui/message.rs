@@ -2,12 +2,18 @@
 
 
 
+use crate::usb::Command as USBCommand;
+
+
+
 #[derive(Clone, Debug)]
 pub enum Message {
     /// An internal message for the console.
     Console( super::console::Message ),
 
     Selector( super::selector::Message ),
+
+    USB( USBCommand ),
 
     /// Indicates a request for a USB defmt connection.
     DefmtConnect( usize, u8, u8, u8, u8, (u8, u8) ),

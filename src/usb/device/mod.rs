@@ -42,13 +42,8 @@ pub struct USBDevice {
     /// List of all the configurations of the device.
     configs: Vec<USBConfig>,
 
-    #[cfg(feature = "application")]
     /// GUI flag that indicates if the display information is expanded.
     pub expanded: bool,
-
-    #[cfg(feature = "application")]
-    /// GUI flag that indicates if the config list is expanded.
-    pub showlist: bool,
 }
 
 impl USBDevice {
@@ -147,10 +142,7 @@ impl USBDevice {
             ids,
             serial,
             configs: Vec::with_capacity( descriptor.num_configurations() as usize ),
-            #[cfg(feature = "application")]
             expanded: false,
-            #[cfg(feature = "application")]
-            showlist: false,
         };
 
         for c in 0..descriptor.num_configurations() {

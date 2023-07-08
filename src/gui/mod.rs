@@ -6,6 +6,7 @@ mod common;
 mod console;
 mod message;
 mod selector;
+mod theme;
 
 
 
@@ -47,6 +48,9 @@ pub struct Application {
 
     /// Channel to send USB commands.
     usbcmd: Sender<USBCommand>,
+
+    /// Application theme.
+    theme: Arc<marcel::theme::Theme>,
 }
 
 impl Application {
@@ -102,8 +106,23 @@ impl App for Application {
     fn new(_: Self::Flags) -> (Self, Command<Message>) {
         use crate::usb::USBLogger;
 
+        // Build the application default theme.
+        let theme = {
+            use marcel::theme::{ Theme, serial::Theme as Serial };
+
+            // Deserialize the theme.
+            let serial: Serial = ron::de::from_str( &theme::DARK ).expect( "Failed to deserialize prechecked theme" );
+
+            // Create the new theme and parse it.
+            let mut theme = Theme::new();
+            let n = theme.parse( &serial ).expect("Failed to parse prechecked theme");
+
+            // Parse the theme.
+            Arc::new( theme )
+        };
+
         // Create the console.
-        let console = console::Console::new();
+        let console = console::Console::new( theme.clone() );
 
         // Create the MPSC pair.
         let (ctx, crx) = mpsc::channel(128);
@@ -139,6 +158,7 @@ impl App for Application {
             selector,
             router,
             usbcmd,
+            theme,
         };
 
         (app, Command::none())
@@ -153,7 +173,11 @@ impl App for Application {
             // A new message for the console.
             Message::Console( inner ) => return self.console.update(inner),
 
+            /// A message for the USB selector.
             Message::Selector( inner ) => return self.selector.update(inner),
+
+            /// A message for the USB handler.
+            Message::USB( command ) => self.usbcommand( command ),
 
             // The USB thread crashed and the console router is closed.
             Message::USBThreadCrashed => if self.router.is_some() {
@@ -173,9 +197,6 @@ impl App for Application {
 
                 self.usbcommand( USBCommand::SetDefmtFile( bytes ) );
             },
-
-            // A new defmt connection was requested.
-            Message::DefmtConnect(key, idx, num, alt, ep, bus) => self.usbcommand( USBCommand::Open(key, idx, num, alt, ep, bus) ),
 
             _ =>(),
         }
@@ -226,7 +247,7 @@ impl Application {
     /// Sends an USB command.
     fn usbcommand(&mut self, cmd: USBCommand) {
         match self.usbcmd.try_send(cmd) {
-            Err(e) => println!("Failed to send USB command"),
+            Err(_) => println!("Failed to send USB command"),
             Ok(_) => (),
         }
     }
@@ -246,9 +267,7 @@ async fn defmtfile() -> Message {
     use rfd::AsyncFileDialog;
     use tokio::{
         fs::File,
-        io::{
-            AsyncReadExt, BufReader,
-        },
+        io::AsyncReadExt,
     };
 
     // Get the file.

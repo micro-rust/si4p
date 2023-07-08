@@ -33,8 +33,17 @@ features = [
 version = "0.10.3"
 optional = true
 
+[dependencies.marcel]
+git = "https://github.com/micro-rust/marcel"
+optional = true
+
 [dependencies.rfd]
 version = "0.11"
+optional = true
+
+[dependencies.ron]
+version = "0.8"
+optional = true
 
 [dependencies.tokio]
 version = "1"
@@ -61,7 +70,7 @@ application = []
 tui = ["application"]
 
 # This feature indicates the application is built with a graphical UI.
-gui = ["application", "iced", "iced_native"]
+gui = ["application", "iced", "iced_native", "marcel", "ron", "rfd"]
 
 
 

@@ -1,0 +1,107 @@
+Theme(
+    name: "Dark (builtin)",
+    description: "Default dark theme of the application",
+
+    border: {
+        "black-1px": Border(
+            color: "black",
+            radius: 1.0,
+            width: 2.0,
+        ),
+
+        "transparent": Border(
+            color: "transparent",
+            radius: 0.0,
+            width: 0.0,
+        ),
+    },
+
+    button: {
+    },
+
+    color: {
+        "black": Color(  0,   0,   0, 1.0),
+        "red"  : Color(255,   0,   0, 1.0),
+        "green": Color(  0, 255,   0, 1.0),
+        "blue" : Color(  0,   0, 255, 1.0),
+        "white": Color(255, 255, 255, 1.0),
+
+        "light-grey": Color( 192, 192, 192, 1.0 ),
+
+        "console-text": Color( 192, 192, 192, 1.0 ),
+
+        "yellow": Color(128, 128,   0, 1.0),
+
+        "transparent": Color(  0,   0,   0, 0.0),
+
+        "dark"       : Color(  10,  38,  71, 1.0 ),
+        "half-dark"  : Color(  20,  66, 114, 1.0 ),
+        "half-light" : Color(  32,  82, 149, 1.0 ),
+        "light"      : Color(  44, 116, 179, 1.0 ),
+    },
+
+    container: {
+        "transparent": Container(
+            color: "transparent",
+            border: "transparent",
+        ),
+
+        "console-background" : Container(
+            color: "dark",
+            border: "transparent",
+        ),
+
+        "console-global" : Container(
+            color: "black",
+            border: "transparent",
+        ),
+
+        "console-topbar" : Container(
+            color: "half-dark",
+            border: "transparent",
+        ),
+    },
+
+    panegrid: {
+    },
+
+    picklist: {
+        "console-list" : Picklist(
+            active: Defined( State (
+                background: "half-light",
+                text: "light-grey",
+                placeholder: "half-light",
+                border: "transparent",
+                handle: "white",
+            )),
+
+            hovered: Defined( State (
+                background: "dark",
+                text: "light-grey",
+                placeholder: "half-light",
+                border: "transparent",
+                handle: "white",
+            )),
+
+            menu: Defined( Menu (
+                background: "half-light",
+                text: "light-grey",
+                border: "transparent",
+                sbackground: "half-dark",
+                stext: "white",
+            )),
+        ),
+    },
+
+    progressbar: {
+    },
+
+    scrollable: {
+    },
+
+    textinput: {
+    },
+
+    tooltip: {
+    },
+)

@@ -27,7 +27,6 @@ pub struct USBConfig {
     /// List of all interfaces in this configuration.
     ifaces: Vec<USBInterface>,
 
-    #[cfg(feature = "application")]
     /// GUI flag that indicates if the display information is expanded.
     pub expanded: bool,
 }
@@ -77,7 +76,6 @@ impl USBConfig {
             ids: device.ids(),
             index: descriptor.number(),
             ifaces: Vec::with_capacity( descriptor.num_interfaces() as usize ),
-            #[cfg(feature = "application")]
             expanded: false,
         };
 

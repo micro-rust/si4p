@@ -288,9 +288,14 @@ impl<M: Into<super::Message>> USBSelector<M> {
 
         match (endpoint.transfer(), endpoint.direction()) {
             (rusb::TransferType::Bulk, rusb::Direction::In) => {
+                use crate::usb::{ Command as USBCommand, common::USBTarget, };
+
+                // Create the USB command.
+                let command = USBCommand::DefmtOpen( USBTarget::new( endpoint.ids(), bus, idx, num, endpoint.alternate(), endpoint.enumber() ) );
+
                 // Create the selection button.
                 let select = Button::new( Text::new( "Select" ) )
-                    .on_press( crate::gui::Message::DefmtConnect(key, idx, num, endpoint.alternate(), endpoint.enumber(), bus) );
+                    .on_press( crate::gui::Message::USB( command ) );
 
                 Row::new()
                     .push(title)

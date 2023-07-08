@@ -36,7 +36,6 @@ pub struct USBInterface {
     /// List of all endpoints in this interface.
     endpoints: Vec<USBEndpoint>,
 
-    #[cfg(feature = "application")]
     /// GUI flag that indicates if the display information is expanded.
     pub expanded: bool,
 }
@@ -107,8 +106,6 @@ impl USBInterface {
                 descriptor.protocol_code(),
             ),
             endpoints: Vec::new(),
-
-            #[cfg(feature = "application")]
             expanded: false,
         };
 

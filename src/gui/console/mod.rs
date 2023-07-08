@@ -3,11 +3,16 @@
 
 
 mod message;
+mod theme;
 
 
 
 use iced::{
     Command, Length,
+
+    alignment::{
+        Horizontal, Vertical,
+    },
 
     widget::{
         Column, Container, PickList,
@@ -18,6 +23,10 @@ use iced::{
         },
     },
 };
+
+use std::sync::Arc;
+
+use theme::Theme;
 
 
 
@@ -43,16 +52,23 @@ pub struct Console {
 
     /// Unique scrollable ID.
     scrollid: Id,
+
+    /// Theme of the console.
+    theme: Theme,
 }
 
 impl Console {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(theme: Arc<marcel::Theme>) -> Self {
+        // Create the theme of the console.
+        let theme = Self::theme(theme);
+
         Self {
             entries: Vec::new(),
             selected: Vec::new(),
             level: Level::Info,
             source: Source::All,
             scrollid: Id::new("console"),
+            theme,
         }
     }
 
@@ -93,7 +109,7 @@ impl Console {
     }
 
     /// Builds the view of the `Console`.
-    pub(super) fn view(&self) -> Column<super::Message> {
+    pub(super) fn view(&self) -> iced::Element<super::Message> {
         // Build the topbar.
         let topbar = self.topbar();
 
@@ -105,20 +121,124 @@ impl Console {
             .height(Length::Fill)
             .width(Length::Fill);
 
-        Column::new()
+        // Container to style it.
+        let col = Column::new()
             .padding(2)
-            .width(iced::Length::FillPortion(80))
+            .width(Length::Fill)
             .push(topbar)
-            .push(container)
+            .push(container);
+
+        Container::new(col)
+            .height(Length::Fill)
+            .width(Length::FillPortion(80))
+            .style( (*self.theme.topbar).clone() )
             .into()
     }
 }
 
 impl Console {
+    /// Creates the theme of the console
+    fn theme(theme: Arc<marcel::Theme>) -> Theme {
+        use marcel::{ Border, Color, Container, Picklist, picklist::{ Menu, State } };
+
+        let background = match theme.container.get("console-background") {
+            Some(data) => data.clone(),
+            _ => Arc::new( Container {
+                color: Arc::new( Color::new(255, 255, 255, 1.0) ),
+                border: Arc::new( Border {
+                    color: Arc::new( Color::new(0, 0, 0, 0.0) ), 
+                    radius: 0.0,
+                    width: 0.0,
+                })
+            }),
+        };
+
+        let global = match theme.container.get("console-global") {
+            Some(data) => data.clone(),
+            _ => Arc::new( Container {
+                color: Arc::new( Color::new(255, 255, 255, 1.0) ),
+                border: Arc::new( Border {
+                    color: Arc::new( Color::new(0, 0, 0, 0.0) ), 
+                    radius: 0.0,
+                    width: 0.0,
+                })
+            }),
+        };
+
+        let topbar = match theme.container.get("console-topbar") {
+            Some(data) => data.clone(),
+            _ => Arc::new( Container {
+                color: Arc::new( Color::new(255, 255, 255, 1.0) ),
+                border: Arc::new( Border {
+                    color: Arc::new( Color::new(0, 0, 0, 0.0) ),
+                    radius: 0.0,
+                    width: 0.0
+                }),
+            }),
+        };
+
+        let picklist = match theme.picklist.get("console-list") {
+            Some(data) => {
+                println!("FOUND THE CONSOLELIST");
+                data.clone()
+            },
+            _ => Arc::new( Picklist {
+                state: [
+                    Arc::new( State {
+                        background: Arc::new( Color::new(96, 96, 96, 1.0) ),
+                        text: Arc::new( Color::new(196, 196, 196, 1.0) ),
+                        placeholder: Arc::new( Color::new(196, 196, 196, 1.0) ),
+                        border: Arc::new( Border {
+                            color: Arc::new( Color::new(0, 0, 0, 0.0) ),
+                            radius: 0.0,
+                            width: 0.0
+                        }),
+                        handle: Arc::new( Color::new(128, 128, 128, 1.0) ),
+                    }),
+                    Arc::new( State {
+                        background: Arc::new( Color::new(96, 96, 96, 1.0) ),
+                        text: Arc::new( Color::new(196, 196, 196, 1.0) ),
+                        placeholder: Arc::new( Color::new(196, 196, 196, 1.0) ),
+                        border: Arc::new( Border {
+                            color: Arc::new( Color::new(0, 0, 0, 0.0) ),
+                            radius: 0.0,
+                            width: 0.0
+                        }),
+                        handle: Arc::new( Color::new(128, 128, 128, 1.0) ),
+                    }),
+                ],
+                menu: Arc::new( Menu {
+                    background: [Arc::new( Color::new(96, 96, 96, 1.0) ), Arc::new( Color::new(96, 96, 96, 1.0) )],
+                    text: [Arc::new( Color::new(196, 196, 196, 1.0) ), Arc::new( Color::new(196, 196, 196, 1.0) )],
+                    border: Arc::new( Border {
+                        color: Arc::new( Color::new(0, 0, 0, 0.0) ),
+                        radius: 0.0,
+                        width: 0.0
+                    }),
+                }),
+            }),
+        };
+
+        let text = match theme.color.get("console-text") {
+            Some(data) => data.clone(),
+            _ => Arc::new( Color::new(255, 255, 255, 1.0) ),
+        };
+
+        let level = [
+            Arc::new( Color::new(255, 255, 255, 1.0) ),
+            Arc::new( Color::new(  0,   0, 255, 1.0) ),
+            Arc::new( Color::new(  0, 255,   0, 1.0) ),
+            Arc::new( Color::new(128, 128,   0, 1.0) ),
+            Arc::new( Color::new(255,   0,   0, 1.0) ),
+        ];
+
+        Theme { background, topbar, picklist, text, level, global, }
+    }
+
     /// Builds the topbar.
     /// Creates a picklist for the level filter and a picklist for the source
     /// filter, displaying them in a row.
-    fn topbar(&self) -> Row<super::Message> {
+    fn topbar(&self) -> Container<super::Message> {
         // List of all entry levels.
         const LEVELS: [Level; 5] = [
             Level::Error, Level::Warn, Level::Info, Level::Debug, Level::Trace,
@@ -134,20 +254,26 @@ impl Console {
             &LEVELS[..],
             Some( self.level.clone() ),
             |l| Message::FilterLevel(l).into(),
-        );
+        )
+        .style( (*self.theme.picklist).clone() );
 
         // Create the dropdown filter for the source.
         let source = PickList::new(
             &SOURCE[..],
             Some( self.source.clone() ),
             |s| Message::FilterSource(s).into(),
-        );
+        )
+        .style( (*self.theme.picklist).clone() );
 
-        Row::new()
+        // Create the row and contain it for style.
+        let row = Row::new()
             .spacing(20)
             .padding(2)
             .push(level)
-            .push(source)
+            .push(source);
+
+        Container::new(row)
+            .style( (*self.theme.topbar).clone() )
     }
 
     /// Builds the entries' content.
@@ -161,22 +287,42 @@ impl Console {
                 let entry = &self.entries[*i];
 
                 // Get the source.
-                let source = Text::new( format!("[{}]", entry.source()) );
+                let source = Container::new( Text::new( format!("[{}]", entry.source()) ).style( (*self.theme.text).clone() ) )
+                    .align_x( Horizontal::Center )
+                    .width(Length::FillPortion(8));
 
                 // Get the level.
-                let level = Text::new( format!("{}", entry.level()) );
+                let mut lvl = Text::new( format!("{}", entry.level()));
+
+                lvl = match entry.level() {
+                    Level::Trace => lvl.style( *self.theme.level[0] ),
+                    Level::Debug => lvl.style( *self.theme.level[1] ),
+                    Level::Info  => lvl.style( *self.theme.level[2] ),
+                    Level::Warn  => lvl.style( *self.theme.level[3] ),
+                    Level::Error => lvl.style( *self.theme.level[4] ),
+                };
+
+                let level = Container::new( lvl )
+                    .align_x( Horizontal::Center )
+                    .width(Length::FillPortion(8));
 
                 // Get the message.
-                let text = Text::new( entry.text() );
+                let text = Container::new( Text::new( entry.text() ).style( (*self.theme.text).clone() ) )
+                    .width(Length::FillPortion(90));
 
-                Row::new()
+                // Container to style it.
+                let row = Row::new()
                     .width(Length::Fill)
                     .spacing(5)
                     .push(source)
                     .push(level)
-                    .push(text)
+                    .push(text);
+
+                Container::new(row) 
+                    .style( (*self.theme.background).clone() )
+                    .width(Length::Fill)
             })
-            .fold(Column::new().width(Length::Fill), |column, entry| {
+            .fold(Column::new().spacing(2).width(Length::Fill), |column, entry| {
                 column.push(entry)
             });
 
@@ -186,7 +332,12 @@ impl Console {
             .scroller_width(10)
             .width(5);
 
-        Scrollable::new(entries)
+        // Container to style it.
+        let container = Container::new(entries)
+            .style( (*self.theme.topbar).clone() )
+            .width(Length::Fill);
+
+        Scrollable::new(container)
             .vertical_scroll(properties)
             .height(Length::Fill)
             .width(Length::Fill)
