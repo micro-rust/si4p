@@ -4,6 +4,7 @@
 
 
 pub mod common;
+pub mod library;
 pub mod usb;
 
 //#[cfg(feature = "gui")]

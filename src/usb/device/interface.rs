@@ -7,6 +7,8 @@ use rusb::{
     Language, UsbContext,
 };
 
+use std::sync::Arc;
+
 use super::{
     USBConfig, USBEndpoint,
 };
@@ -21,6 +23,9 @@ pub struct USBInterface {
     /// The vendor and product IDs of the device.
     ids: (u16, u16),
 
+    /// The bus and address of the USB.
+    bus: (u8, u8),
+
     /// The configuratin index.
     index: u8,
 
@@ -34,7 +39,7 @@ pub struct USBInterface {
     class: (u8, u8, u8),
 
     /// List of all endpoints in this interface.
-    endpoints: Vec<USBEndpoint>,
+    endpoints: Vec<Arc<USBEndpoint>>,
 
     /// GUI flag that indicates if the display information is expanded.
     pub expanded: bool,
@@ -77,17 +82,12 @@ impl USBInterface {
     }
 
     /// Returns an iterator over all the endpoints of the device.
-    pub fn endpoints<'a>(&'a self) -> impl Iterator<Item = &'a USBEndpoint> {
+    pub fn endpoints<'a>(&'a self) -> impl Iterator<Item = &'a Arc<USBEndpoint>> {
         self.endpoints.iter()
     }
 
-    /// Returns an iterator over all the endpoints of the device.
-    pub fn endpoints_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut USBEndpoint> {
-        self.endpoints.iter_mut()
-    }
-
     /// Builds a new interface descriptor.
-    pub fn build<'a, C: UsbContext>(handle: &'a DeviceHandle<C>, descriptor: &'a InterfaceDescriptor, language: Language, config: &'a USBConfig) -> Self {
+    pub fn build<'a, C: UsbContext>(handle: &'a DeviceHandle<C>, descriptor: &'a InterfaceDescriptor, language: Language, config: &'a USBConfig, bus: (u8, u8)) -> Self {
         // Get the string description.
         let description = match handle.read_interface_string(language, descriptor, super::TIMEOUT) {
             Err(_) => String::new(),
@@ -97,6 +97,7 @@ impl USBInterface {
         let mut interface = Self {
             description,
             ids: config.ids(),
+            bus,
             index: config.index(),
             number: descriptor.interface_number(),
             alternate: descriptor.setting_number(),
@@ -112,7 +113,7 @@ impl USBInterface {
         // Parse the endpoints.
         for endpoint in descriptor.endpoint_descriptors() {
             // Create the new enpoint.
-            let endpoint = USBEndpoint::build(handle, &endpoint, language, &interface);
+            let endpoint = Arc::new( USBEndpoint::build(handle, &endpoint, language, &interface, bus) );
 
             // Add the endpoint to the list.
             interface.endpoints.push(endpoint);

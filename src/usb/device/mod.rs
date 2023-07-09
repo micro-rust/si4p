@@ -16,6 +16,8 @@ use rusb::{
     Device, UsbContext,
 };
 
+use std::sync::Arc;
+
 
 
 /// Common timeout for USB operations.
@@ -40,7 +42,7 @@ pub struct USBDevice {
     serial: String,
 
     /// List of all the configurations of the device.
-    configs: Vec<USBConfig>,
+    configs: Vec<Arc<USBConfig>>,
 
     /// GUI flag that indicates if the display information is expanded.
     pub expanded: bool,
@@ -78,13 +80,8 @@ impl USBDevice {
     }
 
     /// Returns an iterator over all the configurations of the device.
-    pub fn configs<'a>(&'a self) -> impl Iterator<Item = &'a USBConfig> {
+    pub fn configs<'a>(&'a self) -> impl Iterator<Item = &'a Arc<USBConfig>> {
         self.configs.iter()
-    }
-
-    /// Returns an iterator over all the configurations of the device.
-    pub fn configs_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut USBConfig> {
-        self.configs.iter_mut()
     }
 
     /// Builds the device descriptor.
@@ -147,7 +144,7 @@ impl USBDevice {
 
         for c in 0..descriptor.num_configurations() {
             match device.config_descriptor(c) {
-                Ok(descriptor) => out.configs.push( USBConfig::build(&handle, &descriptor, language, &out) ),
+                Ok(descriptor) => out.configs.push( Arc::new( USBConfig::build(&handle, &descriptor, language, &out, bus) ) ),
                 Err(_) => continue,
             }
         }

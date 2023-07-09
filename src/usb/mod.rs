@@ -45,7 +45,7 @@ use tokio::sync::mpsc::{
 
 // Global list of connected USB devices.
 lazy_static::lazy_static!{
-    pub static ref CONNECTED: Arc<RwLock<SeqHashMap<usize, device::USBDevice>>> = Arc::new( RwLock::new( SeqHashMap::new().unwrap() ) );
+    pub static ref CONNECTED: Arc<RwLock<SeqHashMap<usize, Arc<device::USBDevice>>>> = Arc::new( RwLock::new( SeqHashMap::new().unwrap() ) );
 }
 
 

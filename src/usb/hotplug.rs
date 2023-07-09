@@ -15,12 +15,12 @@ use tokio::sync::RwLock;
 
 pub(super) struct Hotplug {
     /// Global list of currently connected devices.
-    global: Arc<RwLock<SeqHashMap<usize, USBDevice>>>,
+    global: Arc<RwLock<SeqHashMap<usize, Arc<USBDevice>>>>,
 }
 
 impl Hotplug {
     /// Creates a new hotplug component.
-    pub(super) fn new(global: Arc<RwLock<SeqHashMap<usize, USBDevice>>>) -> Self {
+    pub(super) fn new(global: Arc<RwLock<SeqHashMap<usize, Arc<USBDevice>>>>) -> Self {
         Self { global }
     }
 
@@ -50,7 +50,7 @@ impl Hotplug {
         for new in arriving.into_iter() {
             let ids = new.ids();
 
-            match global.insert(new) {
+            match global.insert( Arc::new(new) ) {
                 Some(_) => ainfo.push( ids ),
 
                 //None => self.error(format!("Failed to insert device {:04X}:{:04X} in the map: Ran out of indexable space. Requires an application restart.", ids.0, ids.1)),

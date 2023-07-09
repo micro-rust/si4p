@@ -24,13 +24,13 @@ Please consider that GUI applications are heavy and pull a lot of dependencies. 
 
 ## GUI - Getting started
 
-![Default GUI](/res/DemoDEFMThost.png "Default GUI Example")
+![Default GUI](/res/md/DemoDEFMThost.png "Default GUI Example")
 
 To get started with the GUI, select the ELF file containing the `defmt` data. This will open an OS native dialog to select the file.
 
 To select which USB device to use, select it using the dropdown on the right of the screen. These dropdowns allow the selection of a specific configuration, interface and enpoint, although only Input Bulk endpoints in CDC ACM interfaces are currently allowed (this is to allow compatibility with UART - USB bridges like FT232, CS2120, etc...).
 
-![Selection Dropdown](/res/SelectionDropdown.png "Selection Dropdown")
+![Selection Dropdown](/res/md/SelectionDropdown.png "Selection Dropdown")
 
 ## Current status
 

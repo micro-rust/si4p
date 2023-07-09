@@ -18,6 +18,9 @@ pub struct USBEndpoint {
     /// The vendor and product IDs of the device.
     ids: (u16, u16),
 
+    /// The bus and address of the USB.
+    bus: (u8, u8),
+
     /// The configuration index.
     index: u8,
 
@@ -44,6 +47,11 @@ impl USBEndpoint {
     /// Returns the vendor and product IDs.
     pub fn ids(&self) -> (u16, u16) {
         self.ids
+    }
+
+    /// Returns the bus and address.
+    pub fn bus(&self) -> (u8, u8) {
+        self.bus
     }
 
     /// Returns the configuration index.
@@ -82,10 +90,11 @@ impl USBEndpoint {
     }
 
     /// Builds a new endpoint descriptor.
-    pub fn build<'a, C: UsbContext>(_: &'a DeviceHandle<C>, descriptor: &'a EndpointDescriptor, _: Language, iface: &'a USBInterface) -> Self {
+    pub fn build<'a, C: UsbContext>(handle: &'a DeviceHandle<C>, descriptor: &'a EndpointDescriptor, _: Language, iface: &'a USBInterface, bus: (u8, u8)) -> Self {
         // Create the endpoint.
         let endpoint = Self {
             ids: iface.ids(),
+            bus,
             index: iface.index(),
             number: iface.number(),
             alternate: iface.alternate(),

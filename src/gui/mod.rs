@@ -2,11 +2,12 @@
 
 
 
+mod commands;
 mod common;
 mod console;
 mod message;
-mod selector;
 mod theme;
+mod usbcfg;
 
 
 
@@ -18,6 +19,10 @@ use iced::{
     executor,
 
     Application as App, Command, Element, Theme,
+
+    widget::{
+        pane_grid::State as PaneGridState,
+    },
 };
 
 pub use message::Message;
@@ -40,14 +45,16 @@ pub struct Application {
     /// The console of the application.
     console: console::Console,
 
-    /// The selector of USB devices.
-    selector: selector::USBSelector<Message>,
+    /// The usbcfg of USB devices.
+    usbcfg: usbcfg::USBConfiguration,
 
     /// The router for the console messages.
     router: Option<Arc<Mutex<Router<console::Entry, Message>>>>,
 
     /// Channel to send USB commands.
     usbcmd: Sender<USBCommand>,
+
+    panes: PaneGridState<PaneGridView>,
 
     /// Application theme.
     /// Keep the theme alive until it is swapped.
@@ -146,20 +153,24 @@ impl App for Application {
         let (usb, usbcmd) = match USBLogger::new( ctx.clone() ) {
             Some((usb, cmd)) => (usb, cmd),
             _ => panic!("Failed to create USB context"),
-        };
-
-        // Create the USB selector.
-        let selector = selector::USBSelector::new( Self::selectormsg );
+        };        
 
         // Spawn the USB logger in a blocking thread.
         std::thread::spawn( move || { usb.run() } );
 
+        // Create the USB usbcfg.
+        let mut usbcfg = usbcfg::USBConfiguration::new();
+
+        // Create the pane grid structure.
+        let panes = Self::panegrid();
+
         // Creates the new application.
         let app = Self {
             console,
-            selector,
+            usbcfg,
             router,
             usbcmd,
+            panes,
             theme,
         };
 
@@ -171,12 +182,15 @@ impl App for Application {
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        use common::Widget;
+
         match message {
             // A new message for the console.
             Message::Console( inner ) => return self.console.update(inner),
 
-            // A message for the USB selector.
-            Message::Selector( inner ) => return self.selector.update(inner),
+            // A message for the USB usbcfg.
+            //Message::Selector( inner ) => return self.usbcfg.update(inner),
+            Message::USBConfiguration( inner ) => return self.usbcfg.update( inner ),
 
             // A message for the USB handler.
             Message::USB( command ) => self.usbcommand( command ),
@@ -191,14 +205,24 @@ impl App for Application {
             },
 
             // Selects a new defmt file.
-            Message::SelectDefmtFile => return Command::perform( defmtfile(), |m| m ),
+            Message::SelectELF( maybe ) => return Command::perform( commands::elf::selectELF(maybe), |m| m ),
+
+            // Loads a defmt file.
+            Message::LoadELF( path ) => return Command::perform( commands::elf::loadELF(path) , |m| m),
 
             // New defmt file.
-            Message::NewDefmtFile( bytes ) => {
-                println!("New defmt file bytes");
-
+            Message::NewELF( bytes, path ) => {
+                // Send the USB command to parse the defmt file.
                 self.usbcommand( USBCommand::SetDefmtFile( bytes ) );
+
+                // Send the path to be reloaded.
+                self.usbcfg.setpath( path );
             },
+
+            // Message to rebuild the USB tree.
+            Message::USBTreeRebuild => self.usbcfg.rebuild(),
+
+            Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
 
             _ =>(),
         }
@@ -207,19 +231,36 @@ impl App for Application {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        // Create the file button.
-        let filebtn = iced::widget::Button::new( "Select defmt file" )
-            .on_press( Message::SelectDefmtFile );
+        use common::Widget;
 
+        use iced::{
+            Length,
 
-        iced::widget::Row::new()
-            .push(self.console.view())
-            .push(
-                iced::widget::Column::new()
-                    .width(iced::Length::FillPortion(20))
-                    .push(filebtn)
-                    .push(self.selector.view())
-            )
+            widget::{
+                Container, Text,
+
+                pane_grid::{
+                    Content, PaneGrid,
+                },
+            },
+        };
+
+        // Build the pane grid.
+        let panegrid = PaneGrid::new(&self.panes, |id, pane, maximized| match *pane {
+            PaneGridView::Console => Content::new( self.console.view() ),
+
+            PaneGridView::Configuration => Content::new( self.usbcfg.view() ),
+
+            _ => Content::new( iced::widget::Column::new() ),
+        })
+        .height(Length::Fill)
+        .width(Length::Fill)
+        .spacing(2)
+        .on_resize(10, |event| Message::PaneGridResize(event));
+
+        Container::new( panegrid )
+            .height(Length::Fill)
+            .width(Length::Fill)
             .into()
     }
 
@@ -236,22 +277,80 @@ impl App for Application {
             subscriptions.push( unfold( 11, Arc::clone(container), Router::listen ) );
         }
 
+        // Create the ticker for updating.
+        let ticker = iced::time::every( core::time::Duration::from_millis(500) ).map(|_| Message::USBTreeRebuild);
+        subscriptions.push( ticker );
+
         iced::Subscription::batch( subscriptions )
     }
 }
 
 impl Application {
-    /// Default function to turn selector message into a message.
-    pub fn selectormsg(msg: selector::Message) -> Message {
-        Message::Selector( msg )
-    }
-
     /// Sends an USB command.
     fn usbcommand(&mut self, cmd: USBCommand) {
         match self.usbcmd.try_send(cmd) {
-            Err(_) => println!("Failed to send USB command"),
-            Ok(_) => (),
+            Err(e) => {
+                self.console.update(
+                    console::Message::New(
+                        console::Entry::error( console::Source::Host, format!("Failed to send USB command : {}", e) )
+                    )
+                );
+            },
+
+            _ => (),
         }
+    }
+
+    /// Builds the panegrid structure.
+    fn panegrid() -> PaneGridState<PaneGridView> {
+        use iced::widget::pane_grid::{
+            Axis, Configuration, Split,
+        };
+
+        // Build the configuration.
+        let configuration = {
+            // Bottom and top of the left sidebar.
+            let left = Configuration::Split {
+                axis: Axis::Horizontal,
+                ratio: 0.5,
+                // Top box for cores.
+                a: Box::new( Configuration::Pane( PaneGridView::Cores ) ),
+                // Bottom box for watch and vars.
+                b: Box::new( Configuration::Pane( PaneGridView::WatchVars ) ),
+            };
+
+            // Main view and right pane.
+            let right = Configuration::Split {
+                axis: Axis::Vertical,
+                ratio: 0.7,
+                // Main view.
+                a: Box::new( Configuration::Pane( PaneGridView::Main ) ),
+                // Configuration view.
+                b: Box::new( Configuration::Pane( PaneGridView::Configuration ) ),
+            };
+
+            // Main view and console.
+            let center = Configuration::Split {
+                axis: Axis::Horizontal,
+                ratio: 0.6,
+                // Main view.
+                a: Box::new( right ),
+                // Console.
+                b: Box::new( Configuration::Pane( PaneGridView::Console ) ),
+            };
+
+            // Everything
+            Configuration::Split {
+                axis: Axis::Vertical,
+                ratio: 0.2,
+                // Left sidebar
+                a: Box::new( left ),
+                // The rest
+                b: Box::new( center )
+            }
+        };
+
+        PaneGridState::with_configuration(configuration)
     }
 }
 
@@ -263,44 +362,10 @@ impl Drop for Application {
 }
 
 
-
-/// Async function to get a file and read it.
-async fn defmtfile() -> Message {
-    use rfd::AsyncFileDialog;
-    use tokio::{
-        fs::File,
-        io::AsyncReadExt,
-    };
-
-    // Get the file.
-    let maybe = AsyncFileDialog::new()
-        .set_directory("/")
-        .pick_file()
-        .await;
-
-    // Check if anything was chosen.
-    let path = match maybe.as_ref() {
-        None => return Message::None,
-        Some(f) => f.path().clone(),
-    };
-
-    // Create the file.
-    let file = match File::open(path).await {
-        Err(_) => return Message::None,
-        Ok(f) => f,
-    };
-
-    // Create the buffer.
-    let mut data = Vec::new();
-
-    // Create the reader.
-    let mut reader = tokio::io::BufReader::new(file);
-
-    // Read the file.
-    match reader.read_to_end(&mut data).await {
-        Err(_) => return Message::None,
-        Ok(_) => (),
-    }
-
-    Message::NewDefmtFile( std::sync::Arc::from(data) )
+pub enum PaneGridView {
+    Console,
+    Main,
+    Configuration,
+    Cores,
+    WatchVars,
 }

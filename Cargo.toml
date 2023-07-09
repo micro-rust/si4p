@@ -54,6 +54,9 @@ features = [
 
 
 # Other dependencies
+[dependencies.dirs]
+version = "1"
+
 [dependencies.lazy_static]
 version = "1"
 
