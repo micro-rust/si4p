@@ -14,5 +14,5 @@ pub(super) use device::USBDeviceView;
 pub(super) use endpoint::USBEndpointView;
 pub(super) use interface::USBInterfaceView;
 pub(self) use super::{
-    Message, ShowAction,
+    ShowAction,
 };

@@ -7,7 +7,7 @@ use crate::usb::device::USBConfig;
 use std::sync::Arc;
 
 use super::{
-    Message, ShowAction, USBInterfaceView,
+    ShowAction, USBInterfaceView,
 };
 
 

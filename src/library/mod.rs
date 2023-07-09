@@ -3,60 +3,69 @@
 
 
 
+mod svd;
 
-pub struct Libray {
 
+
+use std::path::PathBuf;
+
+use tokio::sync::RwLock;
+
+
+
+pub struct Library {
+    /// SVD library with all the targets and SVD files.
+    pub svd: RwLock<svd::SVDLibrary>,
+
+    /// Path to the Si4+ library.
+    path: PathBuf,
 }
 
-impl Libray {
-    /// Static initializer.
-    pub const fn empty() -> Self {
-        Self {}
+impl Library {
+    /// Rebuilds the libraries.
+    pub async fn rebuild(&self) {
+        // Rebuild the SVD library.
+        self.svd.write().await.rebuild().await;
     }
 
     /// Parse the library contents from the given folder.
     /// If the folder is empty, create the file structure in it.
-    pub async fn create() -> Self {
-        use tokio::fs::{
-            read_dir, DirBuilder,
-        };
-
+    pub fn create() -> Self {
         // Get the data folder.
-        let data = dirs::data_dir().expect("Unable to access the data directory");
-        let path = data.join("si4p");
+        let mut path = dirs::data_dir().expect("Unable to access the data directory");
 
-        if !path.exists() {
-            // Create the Si4+ dir.
-            DirBuilder::new().create( path.clone() ).await.expect("Failed to create Si4+ directory");
+        // Create the Si4+ dir.
+        Self::createdir( path.join("si4p") );
 
-            return Self::build( path ).await;
-        }
+        // Extend the path.
+        path = path.join("si4p");
 
-        // Create a one time read directory to check if the dir is empty.
-        let once = read_dir( path.clone() ).await.expect("Failed to read data directory entries");
+        // Create the font dir.
+        Self::createdir( path.join("font") );
 
-        // Read the first entry to see if it is empty.
-        let first = once.next_entry().await.expect("Failed to read entries in data directory");
+        // Create the img dir.
+        Self::createdir( path.join("img") );
 
-        match first {
-            Some(_) => Self::parse(path).await,
-            _ => Self::build(path).await,
+        // Create the svd dir.
+        Self::createdir( path.join("svd") );
+
+        // Create the theme dir.
+        Self::createdir( path.join("theme") );
+
+        Self {
+            svd: RwLock::new( svd::SVDLibrary::new( path.clone() ) ),
+            path: path.clone(),
         }
     }
 
-    /// Creates the library structure in an empty Si4+ folder.
-    async fn build(path: std::path::PathBuf) -> Self {
-        use tokio::fs::DirBuilder;
+    /// Creates a dir if it does not exist.
+    fn createdir(path: PathBuf) {
+        use std::fs::DirBuilder;
 
-        // Create the font dir.
-        DirBuilder::new().create( path.join("font") ).await.expect( "Failed to create the font directory" );
+        // If the path exists, do not create it.
+        if path.exists() { return; }
 
-        // Create the img dir.
-        DirBuilder::new().create( path.join("img") ).await.expect( "Failed to create the image directory" );
-
-        // Create the svd dir.
-        DirBuilder::new().create( path.join("svd") ).await.expect( "Failed to create the SVD directory" );
-
-        Self {}
+        // Create the new directory.
+        DirBuilder::new().create( path ).expect("Failed to create a library directory");
     }
 }

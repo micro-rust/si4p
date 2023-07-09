@@ -7,7 +7,7 @@ use crate::usb::device::USBInterface;
 use std::sync::Arc;
 
 use super::{
-    Message, ShowAction, USBEndpointView,
+    ShowAction, USBEndpointView,
 };
 
 
@@ -95,6 +95,9 @@ impl USBInterfaceView {
         // Create the description.
         let description = Text::new( self.reference.description().clone() );
 
+        // Create the class.
+        let class = Text::new( format!("{:?}", self.reference.class()) );
+
         // Build the interfaces collapse.
         let configs = {
             // Build the label.
@@ -110,6 +113,7 @@ impl USBInterfaceView {
         Column::new()
             .push(title)
             .push(description)
+            .push(class)
             .push(configs)
             .into()
     }

@@ -7,6 +7,7 @@ mod configuration;
 mod message;
 mod view;
 mod selector;
+mod target;
 
 
 pub(self) use configuration::*;
@@ -20,6 +21,8 @@ use selector::{
 
 use std::path::PathBuf;
 
+use target::TargetSelection;
+
 
 
 pub(super) struct USBConfiguration {
@@ -31,6 +34,8 @@ pub(super) struct USBConfiguration {
 
     /// USB selector for `probe-rs`.
     probe: USBSelector<ProbeConfig>,
+
+    target: TargetSelection,
 
     /// Current `defmt` file.
     file: Option<PathBuf>,
@@ -54,11 +59,15 @@ impl crate::gui::common::Widget for USBConfiguration {
         // Create the file path selection.
         let file = self.filepath();
 
+        // Create the target selection.
+        let target = self.target.view();
+
         Column::new()
             .padding(5)
             .spacing(5)
             .width(iced::Length::FillPortion(20))
             .push(file)
+            .push(target)
             .push(topbar)
             .push(view)
             .into()
@@ -72,6 +81,8 @@ impl crate::gui::common::Widget for USBConfiguration {
 
             Message::Probe( action ) => self.probe.show( &action ),
 
+            Message::TargetTextChange( new ) => self.target.textinput( new ),
+
             _ => (),
         }
 
@@ -81,11 +92,12 @@ impl crate::gui::common::Widget for USBConfiguration {
 
 impl USBConfiguration {
     /// Creates a new `USBConfiguration` component.
-    pub(super) fn new() -> Self {
+    pub(super) fn new(library: std::sync::Arc<crate::library::Library>) -> Self {
         Self {
             selected: USBSelectorView::Defmt,
             defmt: USBSelector::new( defmt, DefmtConfig::new() ),
             probe: USBSelector::new( probe, ProbeConfig::new() ),
+            target: TargetSelection::new( library ),
             file: None,
         }
     }
@@ -102,6 +114,16 @@ impl USBConfiguration {
 
         self.defmt.rebuild(&connected);
         self.probe.rebuild(&connected);
+    }
+
+    /// Marks the given target as selected.
+    pub(super) fn select(&mut self, name: String) {
+        self.target.mark( name );
+    }
+
+    /// UnMarks the given target as selected.
+    pub(super) fn deselect(&mut self) {
+        self.target.unmark();
     }
 
     /// Creates the view of the file path selection.
@@ -135,6 +157,7 @@ impl USBConfiguration {
     }
 
     /// Creates the view of the topbar.
+    /// This includes a defmt and probe tab view selector.
     fn topbar(&self) -> iced::Element<crate::gui::Message> {
         use iced::widget::{
             Button, Row,

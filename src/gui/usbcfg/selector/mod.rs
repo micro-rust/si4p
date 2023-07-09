@@ -8,8 +8,6 @@ mod show;
 
 
 
-pub(self) use super::Message;
-
 pub use show::ShowAction;
 
 use crate::usb::device::USBDevice;
@@ -69,6 +67,7 @@ impl<C: crate::gui::common::Widget<Event = ()>> crate::gui::common::Widget for U
         };
 
         Column::new()
+            .height(iced::Length::FillPortion(50))
             .push( config )
             .push( devices )
             .into()

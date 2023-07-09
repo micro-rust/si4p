@@ -56,6 +56,9 @@ pub struct Application {
 
     panes: PaneGridState<PaneGridView>,
 
+    /// Data library of the application.
+    library: Arc<super::library::Library>,
+
     /// Application theme.
     /// Keep the theme alive until it is swapped.
     #[allow(dead_code)]
@@ -115,6 +118,9 @@ impl App for Application {
     fn new(_: Self::Flags) -> (Self, Command<Message>) {
         use crate::usb::USBLogger;
 
+        // Create the library.
+        let library = Arc::new( super::library::Library::create() );
+
         // Build the application default theme.
         let theme = {
             use marcel::theme::{ Theme, serial::Theme as Serial };
@@ -159,7 +165,7 @@ impl App for Application {
         std::thread::spawn( move || { usb.run() } );
 
         // Create the USB usbcfg.
-        let mut usbcfg = usbcfg::USBConfiguration::new();
+        let usbcfg = usbcfg::USBConfiguration::new( library.clone() );
 
         // Create the pane grid structure.
         let panes = Self::panegrid();
@@ -171,6 +177,7 @@ impl App for Application {
             router,
             usbcmd,
             panes,
+            library,
             theme,
         };
 
@@ -210,6 +217,14 @@ impl App for Application {
             // Loads a defmt file.
             Message::LoadELF( path ) => return Command::perform( commands::elf::loadELF(path) , |m| m),
 
+            // Reloads the library.
+            Message::LibraryRebuild => {
+                // Clone the ARC.
+                let reference = Arc::clone( &self.library);
+
+                return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
+            },
+
             // New defmt file.
             Message::NewELF( bytes, path ) => {
                 // Send the USB command to parse the defmt file.
@@ -224,6 +239,16 @@ impl App for Application {
 
             Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
 
+            Message::SelectTarget( name ) => {
+                // Mark the target as selected.
+                self.usbcfg.select( name.clone() );
+            },
+
+            Message::DeselectTarget => {
+                // Mark the target as deselected.
+                self.usbcfg.deselect();
+            },
+
             _ =>(),
         }
 
@@ -237,7 +262,7 @@ impl App for Application {
             Length,
 
             widget::{
-                Container, Text,
+                Container,
 
                 pane_grid::{
                     Content, PaneGrid,
@@ -277,9 +302,13 @@ impl App for Application {
             subscriptions.push( unfold( 11, Arc::clone(container), Router::listen ) );
         }
 
-        // Create the ticker for updating.
-        let ticker = iced::time::every( core::time::Duration::from_millis(500) ).map(|_| Message::USBTreeRebuild);
-        subscriptions.push( ticker );
+        // Create the ticker for updating the USB tree.
+        let usbticker = iced::time::every( core::time::Duration::from_millis(500) ).map(|_| Message::USBTreeRebuild);
+        subscriptions.push( usbticker );
+
+        // Create the ticker for updating the libraries.
+        let libticker = iced::time::every( core::time::Duration::from_secs(5) ).map(|_| Message::LibraryRebuild);
+        subscriptions.push( libticker );
 
         iced::Subscription::batch( subscriptions )
     }
@@ -304,7 +333,7 @@ impl Application {
     /// Builds the panegrid structure.
     fn panegrid() -> PaneGridState<PaneGridView> {
         use iced::widget::pane_grid::{
-            Axis, Configuration, Split,
+            Axis, Configuration,
         };
 
         // Build the configuration.

@@ -11,6 +11,9 @@ pub enum Message {
 
     /// Changes the selected view.
     Selected( super::USBSelectorView ),
+
+    /// The text input of the target selection changed.
+    TargetTextChange( String ),
 }
 
 impl core::convert::Into<crate::gui::Message> for Message {

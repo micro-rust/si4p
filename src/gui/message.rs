@@ -22,6 +22,15 @@ pub enum Message {
     /// A new defmt file was picked.
     NewELF( std::sync::Arc<[u8]>, std::path::PathBuf ),
 
+    /// A library rebuild is needed.
+    LibraryRebuild,
+
+    /// Selects the given target.
+    SelectTarget( String ),
+
+    /// Deselects the current target.
+    DeselectTarget,
+
     /// Indicates a change in the expansion status of a USB config display.
     USBConfigExpanded( (u16, u16), u8, bool ),
 
