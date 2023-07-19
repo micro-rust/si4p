@@ -14,5 +14,7 @@ pub trait Widget {
 
     fn view(&self) -> Element<Message>;
 
-    fn update(&mut self, event: Self::Event) -> Command<Message>;
+    fn update(&mut self, event: Self::Event) -> Command<Message> {
+        Command::none()
+    }
 }

@@ -14,6 +14,9 @@ pub enum Command {
     /// Open the device with the given VID, PID and (optional) serial number.
     DefmtOpen( USBTarget ),
 
+    /// Open the device with the given VID, PID and (optional) serial number.
+    ProbeOpen( USBTarget ),
+
     /// Sets the defmt file.
     SetDefmtFile( std::sync::Arc<[u8]> ),
 

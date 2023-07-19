@@ -95,8 +95,8 @@ impl USBConfiguration {
     pub(super) fn new(library: std::sync::Arc<crate::library::Library>) -> Self {
         Self {
             selected: USBSelectorView::Defmt,
-            defmt: USBSelector::new( defmt, DefmtConfig::new() ),
-            probe: USBSelector::new( probe, ProbeConfig::new() ),
+            defmt: USBSelector::new( defmtaction, defmtselect, DefmtConfig::new() ),
+            probe: USBSelector::new( probeaction, probeselect, ProbeConfig::new() ),
             target: TargetSelection::new( library ),
             file: None,
         }
@@ -186,10 +186,18 @@ impl USBConfiguration {
     }
 }
 
-fn defmt(action: ShowAction) -> crate::gui::Message {
+fn defmtaction(action: ShowAction) -> crate::gui::Message {
     Message::Defmt( action ).into()
 }
 
-fn probe(action: ShowAction) -> crate::gui::Message {
+fn probeaction(action: ShowAction) -> crate::gui::Message {
     Message::Probe( action ).into()
+}
+
+fn defmtselect(target: crate::usb::common::USBTarget) -> crate::gui::Message {
+    crate::gui::Message::USB( crate::usb::Command::DefmtOpen( target ) )
+}
+
+fn probeselect(target: crate::usb::common::USBTarget) -> crate::gui::Message {
+    crate::gui::Message::USB( crate::usb::Command::ProbeOpen( target ) )
 }

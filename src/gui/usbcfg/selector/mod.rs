@@ -10,7 +10,10 @@ mod show;
 
 pub use show::ShowAction;
 
-use crate::usb::device::USBDevice;
+use crate::usb::{
+    common::USBTarget,
+    device::USBDevice,
+};
 
 use seqid::impls::SeqHashMap;
 
@@ -21,8 +24,11 @@ use view::USBDeviceView;
 
 
 pub struct USBSelector<C> {
-    /// Function that creates the message variant for this view.
+    /// Function that creates the action message variant for this view.
     message: fn(ShowAction) -> crate::gui::Message,
+
+    /// Function that creates the selection message variant for this view.
+    select: fn(USBTarget) -> crate::gui::Message,
 
     /// Configuration of this USB selector.
     pub configuration: C,
@@ -80,9 +86,10 @@ impl<C: crate::gui::common::Widget<Event = ()>> crate::gui::common::Widget for U
 
 impl<C> USBSelector<C> {
     /// Creates a new `USBSelector`.
-    pub(super) fn new(message: fn(ShowAction) -> crate::gui::Message, configuration: C) -> Self {
+    pub(super) fn new(message: fn(ShowAction) -> crate::gui::Message, select: fn(USBTarget) -> crate::gui::Message, configuration: C) -> Self {
         Self {
             message,
+            select,
             configuration,
             tree: Vec::new(),
         }
@@ -93,7 +100,7 @@ impl<C> USBSelector<C> {
         // Create all new devices.
         for (key, device) in connected.iter() {
             if !self.tree.iter().any(|dev| dev.key() == *key) {
-                self.tree.push( USBDeviceView::create( device.clone(), *key, self.message ) )
+                self.tree.push( USBDeviceView::create( device.clone(), *key, self.message, self.select ) )
             }
         }
 

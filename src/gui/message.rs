@@ -2,10 +2,21 @@
 
 
 
+use crate::target::Peripheral;
+
+use std::{
+    path::PathBuf,
+    sync::Arc,
+};
+
+
 #[derive(Clone, Debug)]
 pub enum Message {
     /// An internal message for the console.
     Console( super::console::Message ),
+
+    
+    Controller( super::controller::Event ),
 
     /// A new USB command was emitted.
     USB( crate::usb::Command ),
@@ -14,13 +25,16 @@ pub enum Message {
     DefmtConnect( usize, u8, u8, u8, u8, (u8, u8) ),
 
     /// Select defmt file.
-    SelectELF( Option<std::path::PathBuf> ),
+    SelectELF( Option<PathBuf> ),
 
     /// Loads the given defmt file.
-    LoadELF( std::path::PathBuf ),
+    LoadELF( PathBuf ),
 
     /// A new defmt file was picked.
-    NewELF( std::sync::Arc<[u8]>, std::path::PathBuf ),
+    NewELF( Arc<[u8]>, PathBuf ),
+
+    /// A new SVD file was picked.
+    NewSVD( Vec<Arc<Peripheral>>, PathBuf, ),
 
     /// A library rebuild is needed.
     LibraryRebuild,

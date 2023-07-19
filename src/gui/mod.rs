@@ -4,7 +4,8 @@
 
 mod commands;
 mod common;
-mod console;
+pub mod console;
+mod controller;
 mod message;
 mod theme;
 mod usbcfg;
@@ -44,6 +45,9 @@ use tokio::sync::{
 pub struct Application {
     /// The console of the application.
     console: console::Console,
+
+    /// GUI Controller of the target.
+    controller: controller::Controller,
 
     /// The usbcfg of USB devices.
     usbcfg: usbcfg::USBConfiguration,
@@ -170,9 +174,13 @@ impl App for Application {
         // Create the pane grid structure.
         let panes = Self::panegrid();
 
+        // Create the GUI controller of the target.
+        let controller = controller::Controller::new();
+
         // Creates the new application.
         let app = Self {
             console,
+            controller,
             usbcfg,
             router,
             usbcmd,
@@ -181,7 +189,14 @@ impl App for Application {
             theme,
         };
 
-        (app, Command::none())
+        // Create the library rebuild startup command.
+        let library = {
+            // Clone the reference outside the move block.
+            let reference = Arc::clone( &app.library);
+            Command::perform(async move { reference.rebuild().await }, |_| Message::None)
+        };
+
+        (app, Command::batch([library]))
     }
 
     fn title(&self) -> String {
@@ -194,6 +209,8 @@ impl App for Application {
         match message {
             // A new message for the console.
             Message::Console( inner ) => return self.console.update(inner),
+
+            Message::Controller( event ) => return self.controller.update(event),
 
             // A message for the USB usbcfg.
             //Message::Selector( inner ) => return self.usbcfg.update(inner),
@@ -234,6 +251,15 @@ impl App for Application {
                 self.usbcfg.setpath( path );
             },
 
+            // Set the current SVD in the peripheral selector.
+            Message::NewSVD( peripherals, path ) => {
+                // Get the peripherals.
+                //self.peripherals = peripherals.clone();
+
+                // Update the controller data.
+                self.controller.target(peripherals);
+            },
+
             // Message to rebuild the USB tree.
             Message::USBTreeRebuild => self.usbcfg.rebuild(),
 
@@ -242,6 +268,14 @@ impl App for Application {
             Message::SelectTarget( name ) => {
                 // Mark the target as selected.
                 self.usbcfg.select( name.clone() );
+
+                // Clone the library reference.
+                let library = Arc::clone( &self.library );
+
+                println!("Command to load SVD");
+
+                // Parse the associated SVD.
+                return Command::perform( commands::svd::loadSVD(name, library), |m| m );
             },
 
             Message::DeselectTarget => {
@@ -276,6 +310,8 @@ impl App for Application {
 
             PaneGridView::Configuration => Content::new( self.usbcfg.view() ),
 
+            PaneGridView::Controller => Content::new( self.controller.view() ),
+
             _ => Content::new( iced::widget::Column::new() ),
         })
         .height(Length::Fill)
@@ -303,11 +339,11 @@ impl App for Application {
         }
 
         // Create the ticker for updating the USB tree.
-        let usbticker = iced::time::every( core::time::Duration::from_millis(500) ).map(|_| Message::USBTreeRebuild);
+        let usbticker = iced::time::every( core::time::Duration::from_secs(1) ).map(|_| Message::USBTreeRebuild);
         subscriptions.push( usbticker );
 
         // Create the ticker for updating the libraries.
-        let libticker = iced::time::every( core::time::Duration::from_secs(5) ).map(|_| Message::LibraryRebuild);
+        let libticker = iced::time::every( core::time::Duration::from_secs(10) ).map(|_| Message::LibraryRebuild);
         subscriptions.push( libticker );
 
         iced::Subscription::batch( subscriptions )
@@ -343,7 +379,7 @@ impl Application {
                 axis: Axis::Horizontal,
                 ratio: 0.5,
                 // Top box for cores.
-                a: Box::new( Configuration::Pane( PaneGridView::Cores ) ),
+                a: Box::new( Configuration::Pane( PaneGridView::Controller ) ),
                 // Bottom box for watch and vars.
                 b: Box::new( Configuration::Pane( PaneGridView::WatchVars ) ),
             };
@@ -395,6 +431,6 @@ pub enum PaneGridView {
     Console,
     Main,
     Configuration,
-    Cores,
+    Controller,
     WatchVars,
 }

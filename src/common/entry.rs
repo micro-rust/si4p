@@ -75,3 +75,9 @@ impl Entry {
         Entry::new( Level::Error, Source::Host, String::from("USB Thread crashed or dropped the channel") )
     }
 }
+
+impl core::convert::Into<crate::gui::Message> for Entry {
+    fn into(self) -> crate::gui::Message {
+        crate::gui::Message::Console( crate::gui::console::Message::New( self ) )
+    }
+}

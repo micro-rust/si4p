@@ -63,6 +63,9 @@ version = "1"
 [dependencies.seqid]
 git = "https://github.com/micro-rust/seqid"
 
+[dependencies.svd-parser]
+version = "0.14"
+
 
 
 [features]

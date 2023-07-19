@@ -2,7 +2,10 @@
 
 
 
-use crate::usb::device::USBEndpoint;
+use crate::usb::{
+    common::USBTarget,
+    device::USBEndpoint,
+};
 
 use std::sync::Arc;
 
@@ -14,6 +17,9 @@ pub struct USBEndpointView {
 
     /// The key of the device.
     key: usize,
+
+    /// Function that converts a USB target into a message.
+    select: fn(USBTarget) -> crate::gui::Message,
 }
 
 impl crate::gui::common::Widget for USBEndpointView {
@@ -33,8 +39,8 @@ impl crate::gui::common::Widget for USBEndpointView {
 
 impl USBEndpointView {
     /// Creates a new `USBDeviceView`.
-    pub fn create(reference: Arc<USBEndpoint>, key: usize) -> Self {
-        Self { reference, key, }
+    pub fn create(reference: Arc<USBEndpoint>, key: usize, select: fn(USBTarget) -> crate::gui::Message) -> Self {
+        Self { reference, key, select, }
     }
 
     /// Creates the title of the view.
@@ -56,10 +62,10 @@ impl USBEndpointView {
 
         match (self.reference.transfer(), self.reference.direction()) {
             (rusb::TransferType::Bulk, rusb::Direction::In) => {
-                use crate::usb::{ Command as USBCommand, common::USBTarget, };
+                use crate::usb::{ Command as USBCommand, };
 
                 // Create the USB command.
-                let command = USBCommand::DefmtOpen(
+                let command = (self.select)(
                     USBTarget::new(
                         self.reference.ids(),
                         self.reference.bus(),
@@ -72,7 +78,7 @@ impl USBEndpointView {
 
                 // Create the selection button.
                 let select = Button::new( Text::new( "Select" ) )
-                    .on_press( crate::gui::Message::USB( command ) );
+                    .on_press( command );
 
                 Row::new()
                     .push(title)

@@ -2,7 +2,10 @@
 
 
 
-use crate::usb::device::USBDevice;
+use crate::usb::{
+    common::USBTarget,
+    device::USBDevice,
+};
 
 use std::sync::Arc;
 
@@ -68,10 +71,10 @@ impl USBDeviceView {
     }
 
     /// Creates a new `USBDeviceView`.
-    pub fn create(reference: Arc<USBDevice>, key: usize, message: fn(ShowAction) -> crate::gui::Message) -> Self {
+    pub fn create(reference: Arc<USBDevice>, key: usize, message: fn(ShowAction) -> crate::gui::Message, select: fn(USBTarget) -> crate::gui::Message) -> Self {
         // Build the configurations.
         let configurations = reference.configs()
-            .map(|config| USBConfigView::create( config.clone(), key, message ))
+            .map(|config| USBConfigView::create( config.clone(), key, message, select ))
             .collect();
 
         Self { message, reference, key, configurations, expanded: false }
