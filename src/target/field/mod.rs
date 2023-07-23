@@ -2,79 +2,80 @@
 
 
 
-mod enumerated;
-mod values;
+//mod enumerated;
+//mod values;
 
 
 
-pub use enumerated::EnumeratedValue;
-pub use values::WriteValues;
+//pub use enumerated::EnumeratedValue;
+//pub use values::WriteValues;
 
 
 
 use svd_parser::svd::{
-    Access, BitRange, FieldInfo, PeripheralInfo, RegisterInfo,
+    Access, BitRange, FieldInfo, Name, PeripheralInfo, ReadAction, RegisterInfo,
     WriteConstraint, WriteConstraintRange,
 };
 
 
 
+#[derive(Clone, Debug)]
 pub struct Field {
     /// Name of the field.
-    pub name: String,
+    pub(super) name: String,
 
     /// Address of the register containing the field.
-    pub address: u64,
+    pub(super) address: u64,
 
     /// Bit range of the field.
-    pub bitrange: BitRange,
+    pub(super) bitrange: BitRange,
 
-    /// Access restrictions to this field.
-    pub access: Access,
-
-    /// Possible values of this field.
-    pub values: WriteValues,
-
-    /// Current raw value of the field.
-    pub raw: u64,
+    /// Side effects of reading this field.
+    pub(super) readaction: Option<ReadAction>,
 }
 
 impl Field {
     /// Creates the field representation from the available information.
-    pub fn create(peripheral: &PeripheralInfo, register: &RegisterInfo, field: &FieldInfo) -> Option<Field> {
+    pub fn create(peripheral: &PeripheralInfo, register: &RegisterInfo, info: &FieldInfo) -> Field {
         // Get the name of the field.
-        let name = field.name.clone();
+        let name = info.name.clone();
 
         // Get the address of the register.
         let address = peripheral.base_address + (register.address_offset as u64);
 
-        // Get the bit range of the field.
-        let bitrange = field.bit_range;
+        // Check if the field is derived from another field.
+        // This section is very dense and I dont want to debug it.
+        let baseinfo = match &info.derived_from {
+            Some(derived) => register.fields()
+                .find(|p| p.name() == derived)
+                .expect("Malformed SVD file : Bad peripheral derive"),
 
-        // Get the access (or default).
-        let access = getaccess(peripheral, register, field)?;
-
-        // Get the value restrictions of the field.
-        let values = match field.write_constraint {
-            Some( WriteConstraint::UseEnumeratedValues(true) ) => WriteValues::Enumeration(Vec::new()),
-            Some( WriteConstraint::WriteAsRead(true) ) => WriteValues::WriteAsRead,
-            Some( WriteConstraint::Range(range) ) => WriteValues::Range( range ),
-            _ => WriteValues::Value,
+            _ => info,
         };
 
-        Some( Self {
+        // Get the bit range of the field.
+        let bitrange = baseinfo.bit_range;
+
+        // Get the read side effect.s
+        let readaction = baseinfo.read_action;
+
+        Self {
             name,
             address,
             bitrange,
-            access,
-            values,
-            raw: 0,
-        })
+            readaction,
+        }
+    }
+
+    /// Returns the read side effect of this field.
+    pub fn readaction(&self) -> Option<ReadAction> {
+        self.readaction
     }
 }
 
 
 
+/*
 /// Gets the access permissions of the field.
 fn getaccess(peripheral: &PeripheralInfo, register: &RegisterInfo, field: &FieldInfo) -> Option<Access> {
     match field.access {
@@ -97,3 +98,4 @@ fn getconstraint(peripheral: &PeripheralInfo, register: &RegisterInfo, field: &F
         access => access,
     }
 }
+*/

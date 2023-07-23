@@ -52,9 +52,7 @@ impl Peripheral {
             _ => info,
         };
 
-        // Get the registers of the device.
-        // Ignore clusters from now.
-        // This section is very dense and I dont want to debug it.
+        // Get the registers of the peripheral.
         let mut registers: Vec<super::Register> = baseinfo.registers()
             .filter(|array| array.is_single())
             .map(|r| super::Register::create(info, &r) )
