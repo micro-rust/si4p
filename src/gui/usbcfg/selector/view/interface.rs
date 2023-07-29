@@ -58,10 +58,6 @@ impl crate::gui::common::Widget for USBInterfaceView {
             .push( base )
             .into()
     }
-
-    fn update(&mut self, event: Self::Event) -> iced::Command<crate::gui::Message> {
-        iced::Command::none()
-    }
 }
 
 impl USBInterfaceView {

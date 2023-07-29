@@ -15,6 +15,12 @@ pub enum Message {
     /// An internal message for the console.
     Console( super::console::Message ),
 
+    /// A new console entry.
+    ConsoleEntry( crate::common::Entry ),
+
+    /// Events of the right sidebar.
+    Right( super::right::Event ),
+
     
     Controller( super::controller::Event ),
 
@@ -39,6 +45,8 @@ pub enum Message {
     /// A library rebuild is needed.
     LibraryRebuild,
 
+    NewDebugSession,
+
     /// Selects the given target.
     SelectTarget( String ),
 
@@ -58,7 +66,7 @@ pub enum Message {
     USBTreeRebuild,
 
     /// A message of the USB configuration component.
-    USBConfiguration( super::usbcfg::Message ),
+    //USBConfiguration( super::usbcfg::Message ),
 
     /// No message emitted.
     /// Placeholder for functions with mandatory return message.

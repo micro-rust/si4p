@@ -2,24 +2,23 @@
 
 
 
+mod event;
 mod message;
 mod theme;
 
 
 
 use iced::{
-    BorderRadius, Command, Length,
+    BorderRadius, Command, Element, Length, Renderer,
 
-    alignment::{
-        Horizontal,
-    },
+    alignment::Horizontal,
 
     widget::{
-        Column, Container, PickList,
+        Column, Component, Container, PickList,
         Row, Scrollable, Text,
 
         scrollable::{
-            Id, Properties,
+            Direction, Id, Properties,
         },
     },
 };
@@ -33,6 +32,7 @@ use theme::Theme;
 pub use crate::common::Entry;
 pub use crate::common::Level;
 pub use crate::common::Source;
+use event::Event;
 pub use message::Message;
 
 
@@ -57,46 +57,20 @@ pub struct Console {
     theme: Theme,
 }
 
-impl Console {
-    pub(super) fn new(theme: Arc<marcel::Theme>) -> Self {
-        // Create the theme of the console.
-        let theme = Self::theme(theme);
-
-        Self {
-            entries: Vec::new(),
-            selected: Vec::new(),
-            level: Level::Info,
-            source: Source::All,
-            scrollid: Id::new("console"),
-            theme,
-        }
+impl<'a> From<Console> for Element<'a, crate::gui::Message, Renderer> {
+    fn from(console: Console) -> Element<'a, crate::gui::Message> {
+        iced::widget::component( console )
     }
+}
 
-    /// Updates the console.
-    pub(super) fn update(&mut self, message: Message) -> Command<super::Message> {
-        match message {
-            Message::FilterLevel(level) => {
-                // Set the new level filter.
-                self.level = level;
+impl Component<crate::gui::Message, Renderer> for Console {
+    // No state, it's all in the struct.
+    type State = ();
 
-                // Rebuild the list.
-                self.rebuild();
-            },
+    // The internal event type.
+    type Event = Event;
 
-            Message::FilterSource(source) => {
-                // Set the new source filter.
-                self.source = source;
-
-                // Rebuild the list.
-                self.rebuild();
-            },
-        }
-
-        Command::none()
-    }
-
-    /// Builds the view of the `Console`.
-    pub(super) fn view(&self) -> iced::Element<super::Message> {
+    fn view(&self, _: &Self::State) -> Element<Self::Event, Renderer> {
         // Build the topbar.
         let topbar = self.topbar();
 
@@ -121,21 +95,36 @@ impl Console {
             .style( (*self.theme.topbar).clone() )
             .into()
     }
+
+    fn update(&mut self, _: &mut Self::State, event: Self::Event) -> Option<crate::gui::Message> {
+        match event {
+            Event::FilterSource( source ) => self.source = source,
+            Event::FilterLevel( level ) => self.level = level,
+        }
+
+        None
+    }
 }
 
 impl Console {
-    /// Adds a new entry.
-    pub(super) fn push(&mut self, entry: Entry) {
-        // Check if the entry matches the current filter.
-        let matches = entry.matches(self.level, self.source);
+    /// Creates a new console component.
+    pub(super) fn new(theme: Arc<marcel::Theme>) -> Self {
+        // Create the theme of the console.
+        let theme = Self::theme(theme);
 
-        // Push the entry.
-        self.entries.push(entry);
-
-        // Select the entry for display if it matched the filters.
-        if matches {
-            self.selected.push(self.entries.len() - 1);
+        Self {
+            entries: Vec::new(),
+            selected: Vec::new(),
+            level: Level::Info,
+            source: Source::All,
+            scrollid: Id::new("console"),
+            theme,
         }
+    }
+
+    /// Pushes a new entry to the console.
+    pub(super) fn push(&mut self, entry: Entry) {
+        self.entries.push(entry)
     }
 
     /// Creates the theme of the console
@@ -148,7 +137,7 @@ impl Console {
                 color: Arc::new( Color::new(255, 255, 255, 1.0) ),
                 border: Arc::new( Border {
                     color: Arc::new( Color::new(0, 0, 0, 0.0) ), 
-                    radius: BorderRadius::from(0.0),
+                    radius: BorderRadius::from( 0.0 ),
                     width: 0.0,
                 })
             }),
@@ -160,7 +149,7 @@ impl Console {
                 color: Arc::new( Color::new(255, 255, 255, 1.0) ),
                 border: Arc::new( Border {
                     color: Arc::new( Color::new(0, 0, 0, 0.0) ),
-                    radius: BorderRadius::from(0.0),
+                    radius: BorderRadius::from( 0.0 ),
                     width: 0.0
                 }),
             }),
@@ -176,7 +165,7 @@ impl Console {
                         placeholder: Arc::new( Color::new(196, 196, 196, 1.0) ),
                         border: Arc::new( Border {
                             color: Arc::new( Color::new(0, 0, 0, 0.0) ),
-                            radius: BorderRadius::from(0.0),
+                            radius: BorderRadius::from( 0.0 ),
                             width: 0.0
                         }),
                         handle: Arc::new( Color::new(128, 128, 128, 1.0) ),
@@ -187,7 +176,7 @@ impl Console {
                         placeholder: Arc::new( Color::new(196, 196, 196, 1.0) ),
                         border: Arc::new( Border {
                             color: Arc::new( Color::new(0, 0, 0, 0.0) ),
-                            radius: BorderRadius::from(0.0),
+                            radius: BorderRadius::from( 0.0 ),
                             width: 0.0
                         }),
                         handle: Arc::new( Color::new(128, 128, 128, 1.0) ),
@@ -198,7 +187,7 @@ impl Console {
                     text: [Arc::new( Color::new(196, 196, 196, 1.0) ), Arc::new( Color::new(196, 196, 196, 1.0) )],
                     border: Arc::new( Border {
                         color: Arc::new( Color::new(0, 0, 0, 0.0) ),
-                        radius: BorderRadius::from(0.0),
+                        radius: BorderRadius::from( 0.0 ),
                         width: 0.0
                     }),
                 }),
@@ -224,7 +213,7 @@ impl Console {
     /// Builds the topbar.
     /// Creates a picklist for the level filter and a picklist for the source
     /// filter, displaying them in a row.
-    fn topbar(&self) -> Container<super::Message> {
+    fn topbar(&self) -> Container<Event> {
         // List of all entry levels.
         const LEVELS: [Level; 5] = [
             Level::Error, Level::Warn, Level::Info, Level::Debug, Level::Trace,
@@ -239,7 +228,7 @@ impl Console {
         let level = PickList::new(
             &LEVELS[..],
             Some( self.level.clone() ),
-            |l| Message::FilterLevel(l).into(),
+            |l| Event::FilterLevel(l),
         )
         .style( (*self.theme.picklist).clone() );
 
@@ -247,7 +236,7 @@ impl Console {
         let source = PickList::new(
             &SOURCE[..],
             Some( self.source.clone() ),
-            |s| Message::FilterSource(s).into(),
+            |s| Event::FilterSource(s),
         )
         .style( (*self.theme.picklist).clone() );
 
@@ -265,11 +254,7 @@ impl Console {
     /// Builds the entries' content.
     /// Takes all the entries selected by the current filter and displays their
     /// information in a single row within a scrollable section.
-    fn content(&self) -> Scrollable<super::Message> {
-        use iced::widget::scrollable::{
-            Direction, Scrollable,
-        };
-
+    fn content(&self) -> Scrollable<Event> {
         // Create the entries.
         let entries = self.selected.iter()
             .map(|i| {
@@ -328,7 +313,7 @@ impl Console {
             .width(Length::Fill);
 
         Scrollable::new(container)
-            .direction( Direction::Vertical( properties ) )
+            .direction( Direction::Vertical(properties) )
             .height(Length::Fill)
             .width(Length::Fill)
             .id(self.scrollid.clone())

@@ -44,7 +44,9 @@ impl<C: crate::gui::common::Widget<Event = ()>> crate::gui::common::Widget for U
         use iced::widget::{
             Column, Scrollable,
 
-            scrollable::Properties,
+            scrollable::{
+                Direction, Properties,
+            },
         };
 
         // Get the configuration view.
@@ -68,8 +70,8 @@ impl<C: crate::gui::common::Widget<Event = ()>> crate::gui::common::Widget for U
 
             // Create the scrollable.
             Scrollable::new(base)
+                .direction( Direction::Both { vertical: properties, horizontal: properties } )
                 .width(iced::Length::Fill)
-                .vertical_scroll(properties)
         };
 
         Column::new()

@@ -78,6 +78,6 @@ impl Entry {
 
 impl core::convert::Into<crate::gui::Message> for Entry {
     fn into(self) -> crate::gui::Message {
-        crate::gui::Message::Console( crate::gui::console::Message::New( self ) )
+        crate::gui::Message::ConsoleEntry( self )
     }
 }

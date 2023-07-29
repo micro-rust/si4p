@@ -4,7 +4,7 @@
 
 
 mod defmt;
-//mod probe;
+mod probe;
 
 
 
@@ -15,4 +15,4 @@ pub(self) use super::defmt as decoder;
 
 
 pub(super) use defmt::DefmtHandle;
-//pub(super) use probe::ProbeHandle;
+pub(super) use probe::ProbeHandle;

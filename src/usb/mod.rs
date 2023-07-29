@@ -14,8 +14,14 @@ pub mod device;
 
 pub use command::Command;
 
-use crate::common::{
-    Entry, Source,
+use crate::{
+    common::{
+        Entry, Source,
+    },
+
+    gui::Message,
+
+    target::CoreInformation,
 };
 
 use rusb::Context;
@@ -27,9 +33,7 @@ use std::{
     time::Duration,
 };
 
-use tokio::{
-    sync::RwLock,
-};
+use tokio::sync::RwLock;
 
 use tokio::sync::mpsc::{
     channel,
@@ -48,11 +52,16 @@ lazy_static::lazy_static!{
     pub static ref CONNECTED: Arc<RwLock<SeqHashMap<usize, Arc<device::USBDevice>>>> = Arc::new( RwLock::new( SeqHashMap::new().unwrap() ) );
 }
 
+// Global list of the cores of the target.
+lazy_static::lazy_static!{
+    pub static ref CORES: RwLock<Vec<Arc<RwLock<CoreInformation>>>> = RwLock::new( Vec::new() );
+}
+
 
 pub struct USBLogger {
     /// Context of the USB logger.
     /// Keep this in here for now to have a USB context alive, but maybe this
-    /// is unnecesary and we can eliminate this field.
+    /// is unnecesary and we can eliminate this field in the future.
     #[allow(dead_code)]
     context: Context,
 
@@ -60,10 +69,13 @@ pub struct USBLogger {
     commands: Receiver<Command>,
 
     /// A channel to send console entries.
-    console: Sender<Entry>,
+    console: Sender<Message>,
 
     /// The connection to the USB `defmt` device.
     defmtusb: handle::DefmtHandle,
+
+    /// The connection to the USB debug probe.
+    probeusb: handle::ProbeHandle,
 
     /// Hotplug handler.
     hotplug: hotplug::Hotplug,
@@ -74,7 +86,7 @@ pub struct USBLogger {
 
 impl USBLogger {
     /// Attempts to create a new USB `defmt` logger.
-    pub fn new(console: Sender<Entry>) -> Option<(Self, Sender<Command>)> {
+    pub fn new(console: Sender<Message>) -> Option<(Self, Sender<Command>)> {
         // Create a new USB context.
         let context = match Context::new() {
             Err(e) => {
@@ -82,7 +94,7 @@ impl USBLogger {
                 let entry = Entry::error(Source::Host, format!("Failed to create USB context: {}", e) );
 
                 // Send the error, best effort.
-                let _ = console.try_send( entry );
+                let _ = console.try_send( entry.into() );
 
                 return None;
             },
@@ -91,7 +103,7 @@ impl USBLogger {
         };
 
         // Create a new pair of command channels.
-        let (sender, commands) = channel(128);
+        let (sender, commands) = channel(256);
 
         // Create the logger.
         let logger = USBLogger {
@@ -99,6 +111,7 @@ impl USBLogger {
             commands,
             console,
             defmtusb: handle::DefmtHandle::new(),
+            probeusb: handle::ProbeHandle::new(),
             hotplug: hotplug::Hotplug::new( CONNECTED.clone() ),
             interval: Duration::from_millis(1000),
         };
@@ -116,9 +129,13 @@ impl USBLogger {
                     for (vid, pid) in arriving.iter() {
                         self.info( format!("Device {:04X}:{:04X} plugged in", vid, pid) );
                     }
-        
+
                     for (vid, pid) in leaving.iter() {
                         self.info( format!("Device {:04X}:{:04X} plugged out", vid, pid) );
+                    }
+
+                    if (arriving.len() > 0) || (leaving.len() > 0) {
+                        self.txmessage( Message::USBTreeRebuild );
                     }
                 },
 
@@ -132,6 +149,17 @@ impl USBLogger {
 
             // Check for new data in the defmt USB.
             match self.defmtusb.update() {
+                Err(error) => self.txconsole(error),
+                Ok(maybe) => match maybe {
+                    Some(messages) => for entry in messages.into_iter() {
+                        self.txconsole( entry )
+                    },
+                    _ => (),
+                },
+            }
+
+            // Check for new data in the probe USB.
+            match self.probeusb.update() {
                 Err(error) => self.txconsole(error),
                 Ok(maybe) => match maybe {
                     Some(messages) => for entry in messages.into_iter() {
@@ -168,7 +196,7 @@ impl USBLogger {
 
             // Check which command was received.
             match cmd {
-                // Request to open a connection.
+                // Request to open a defmt connection.
                 Command::DefmtOpen(target) => match self.defmtusb.open(target) {
                     Ok(maybe) => match maybe {
                         Some((vid, pid)) => self.info( format!("Opened defmt USB device {:04X}:{:04X}", vid, pid) ),
@@ -178,6 +206,33 @@ impl USBLogger {
                     Err(e) => self.error( format!("Failed to open defmt USB connection : {}", e) ),
                 },
 
+                // Request to open a probe connection.
+                Command::ProbeOpen( info ) => match self.probeusb.probe(info) {
+                    Ok(true) => {
+                        // Log the information.
+                        self.info("Opened a debug probe session");
+
+                        // Send the rebuild command.
+                        self.txmessage( Message::NewDebugSession );
+                    },
+                    Ok(false) => self.debug("Set the debug probe"),
+                    Err(e) => self.error( format!("Debug Probe Error : {}", e) )
+                },
+
+                // Request to set the debug target.
+                Command::DebugTarget( target ) => match self.probeusb.target(target) {
+                    Ok(true) => {
+                        // Log the information.
+                        self.info("Opened a debug probe session");
+
+                        // Send the rebuild command.
+                        self.txmessage( Message::NewDebugSession );
+                    },
+                    Ok(false) => self.debug("Set the debug target"),
+                    Err(e) => self.error( format!("Debug Probe Error : {}", e) )
+                },
+
+                // Request to set the debu
                 // Sets the active deftm file.
                 Command::SetDefmtFile( bytes ) => match defmt::DefmtInfo::create( bytes ) {
                     Some(encoding) => self.info( format!("Created a new defmt decoder with {:?} encoding", encoding) ),
@@ -239,7 +294,19 @@ impl USBLogger {
     /// Sends the given entry to the console.
     fn txconsole(&mut self, entry: Entry) {
         // TODO : Some action to log this.
-        match self.console.try_send( entry ) {
+        match self.console.try_send( entry.into() ) {
+            Err(e) => match e {
+                TrySendError::Full(_) => (),
+                TrySendError::Closed(_) => (),
+            },
+
+            _ => (),
+        }
+    }
+
+    /// Sends the given entry to the application.
+    fn txmessage(&mut self, msg: Message) {
+        match self.console.try_send( msg ) {
             Err(e) => match e {
                 TrySendError::Full(_) => (),
                 TrySendError::Closed(_) => (),

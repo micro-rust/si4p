@@ -8,7 +8,9 @@ pub mod console;
 mod controller;
 mod message;
 mod theme;
-mod usbcfg;
+//mod usbcfg;
+
+mod right;
 
 
 
@@ -22,6 +24,7 @@ use iced::{
     Application as App, Command, Element, Theme,
 
     widget::{
+        Component,
         pane_grid::State as PaneGridState,
     },
 };
@@ -50,10 +53,10 @@ pub struct Application {
     controller: controller::Controller,
 
     /// The usbcfg of USB devices.
-    usbcfg: usbcfg::USBConfiguration,
+    //usbcfg: usbcfg::USBConfiguration,
 
     /// The router for the console messages.
-    router: Option<Arc<Mutex<Router<console::Entry, Message>>>>,
+    router: Option<Arc<Mutex<Router<Message, Message>>>>,
 
     /// Channel to send USB commands.
     usbcmd: Sender<USBCommand>,
@@ -62,6 +65,9 @@ pub struct Application {
 
     /// Data library of the application.
     library: Arc<super::library::Library>,
+
+    /// Right sidebar.
+    right: right::RightSidebar,
 
     /// Application theme.
     /// Keep the theme alive until it is swapped.
@@ -82,27 +88,41 @@ impl Application {
         // Build the app settings.
         let settings: iced::Settings<()> = iced::Settings {
             window: Window {
+                // Position and starting size.
+                // Set a default screen size as the default window size.
                 size: (1280, 720),
                 position: Position::Centered,
+
+                // Resizable and with normal decorations.
                 resizable: true,
                 decorations: true,
+
+                // TODO : Include default icon.
                 icon: None,
+
+                // Minimum size to avoid everything looking weird.
+                // No max size.
                 min_size: Some((900, 900)),
                 max_size: None,
-                always_on_top: false,
+
+                // Visible from start and non transparent window.
                 transparent: false,
                 visible: true,
-                platform_specific: PlatformSpecific,
+
+                // Platform specific configuration.
+                // Leave as is until we deal with Windows.
+                platform_specific: PlatformSpecific { application_id: String::from("Si4+ instance") },
+
+                // Normal application level (default behaviour).
+                level: iced::window::Level::Normal,
             },
 
-            id: None,
-            text_multithreading: true,
-            try_opengles_first: true,
+            id: Some( String::from("Si4+ instance") ),
 
             default_text_size: 17.0,
             exit_on_close_request: true,
             antialiasing: true,
-            default_font: None,
+            default_font: iced::Font::MONOSPACE,
             flags: (),
         };
 
@@ -150,7 +170,7 @@ impl App for Application {
         let router = {
 
             // Create the map function.
-            let map = |entry| Message::Console( console::Message::New(entry) );
+            let map = |msg| msg;
 
             // Create the new router.
             let router = Router::create( Arc::new( map ), Message::USBThreadCrashed, crx );
@@ -169,7 +189,7 @@ impl App for Application {
         std::thread::spawn( move || { usb.run() } );
 
         // Create the USB usbcfg.
-        let usbcfg = usbcfg::USBConfiguration::new( library.clone() );
+        //let usbcfg = usbcfg::USBConfiguration::new( library.clone() );
 
         // Create the pane grid structure.
         let panes = Self::panegrid();
@@ -177,16 +197,20 @@ impl App for Application {
         // Create the GUI controller of the target.
         let controller = controller::Controller::new();
 
+        // Create the right sidebar.
+        let right = right::RightSidebar::new(library.clone());
+
         // Creates the new application.
         let app = Self {
             console,
             controller,
-            usbcfg,
             router,
             usbcmd,
             panes,
             library,
             theme,
+
+            right,
         };
 
         // Create the library rebuild startup command.
@@ -208,24 +232,28 @@ impl App for Application {
 
         match message {
             // A new message for the console.
-            Message::Console( inner ) => return self.console.update(inner),
+            Message::Console( message ) => return self.console.update( message ),
+
+            Message::ConsoleEntry( entry ) => self.console.push( entry ),
 
             Message::Controller( event ) => return self.controller.update(event),
 
+            Message::Right( event ) => return self.right.update(event),
+
             // A message for the USB usbcfg.
             //Message::Selector( inner ) => return self.usbcfg.update(inner),
-            Message::USBConfiguration( inner ) => return self.usbcfg.update( inner ),
+            //Message::USBConfiguration( inner ) => return self.usbcfg.update( inner ),
 
             // A message for the USB handler.
             Message::USB( command ) => self.usbcommand( command ),
 
             // The USB thread crashed and the console router is closed.
             Message::USBThreadCrashed => if self.router.is_some() {
+                // Log this error.
+                self.console.push( console::Entry::usbcrash() );
+
                 // Remove the current router from the application.
                 self.router = None;
-
-                // Log this error.
-                return self.console.update( console::Message::New( console::Entry::usbcrash() ) );
             },
 
             // Selects a new defmt file.
@@ -242,17 +270,22 @@ impl App for Application {
                 return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
             },
 
+            Message::NewDebugSession => {
+                // Rebuild the controller cores.
+                self.controller.rebuild();
+            }
+
             // New defmt file.
             Message::NewELF( bytes, path ) => {
                 // Send the USB command to parse the defmt file.
                 self.usbcommand( USBCommand::SetDefmtFile( bytes ) );
 
                 // Send the path to be reloaded.
-                self.usbcfg.setpath( path );
+                //self.usbcfg.setpath( path );
             },
 
             // Set the current SVD in the peripheral selector.
-            Message::NewSVD( peripherals, path ) => {
+            Message::NewSVD( peripherals, _ ) => {
                 // Get the peripherals.
                 //self.peripherals = peripherals.clone();
 
@@ -261,18 +294,21 @@ impl App for Application {
             },
 
             // Message to rebuild the USB tree.
-            Message::USBTreeRebuild => self.usbcfg.rebuild(),
+            Message::USBTreeRebuild => {
+                //self.usbcfg.rebuild();
+            },
 
             Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
 
             Message::SelectTarget( name ) => {
+                // Send the command to the USB.
+                self.usbcommand( USBCommand::DebugTarget(name.clone()) );
+
                 // Mark the target as selected.
-                self.usbcfg.select( name.clone() );
+                //self.usbcfg.select( name.clone() );
 
                 // Clone the library reference.
                 let library = Arc::clone( &self.library );
-
-                println!("Command to load SVD");
 
                 // Parse the associated SVD.
                 return Command::perform( commands::svd::loadSVD(name, library), |m| m );
@@ -280,7 +316,7 @@ impl App for Application {
 
             Message::DeselectTarget => {
                 // Mark the target as deselected.
-                self.usbcfg.deselect();
+                //self.usbcfg.deselect();
             },
 
             _ =>(),
@@ -305,10 +341,10 @@ impl App for Application {
         };
 
         // Build the pane grid.
-        let panegrid = PaneGrid::new(&self.panes, |id, pane, maximized| match *pane {
+        let panegrid = PaneGrid::new(&self.panes, |_, pane, _| match *pane {
             PaneGridView::Console => Content::new( self.console.view() ),
 
-            PaneGridView::Configuration => Content::new( self.usbcfg.view() ),
+            PaneGridView::RightSidebar => Content::new( self.right.view() ),
 
             PaneGridView::Controller => Content::new( self.controller.view() ),
 
@@ -326,9 +362,7 @@ impl App for Application {
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        use iced::subscription::{
-            unfold,
-        };
+        use iced::subscription::unfold;
 
         // Create the list of subscriptions.
         let mut subscriptions = Vec::new();
@@ -337,10 +371,6 @@ impl App for Application {
         if let Some(container) = &self.router {
             subscriptions.push( unfold( 11, Arc::clone(container), Router::listen ) );
         }
-
-        // Create the ticker for updating the USB tree.
-        let usbticker = iced::time::every( core::time::Duration::from_secs(1) ).map(|_| Message::USBTreeRebuild);
-        subscriptions.push( usbticker );
 
         // Create the ticker for updating the libraries.
         let libticker = iced::time::every( core::time::Duration::from_secs(10) ).map(|_| Message::LibraryRebuild);
@@ -355,10 +385,8 @@ impl Application {
     fn usbcommand(&mut self, cmd: USBCommand) {
         match self.usbcmd.try_send(cmd) {
             Err(e) => {
-                self.console.update(
-                    console::Message::New(
-                        console::Entry::error( console::Source::Host, format!("Failed to send USB command : {}", e) )
-                    )
+                self.console.push(
+                    console::Entry::error( console::Source::Host, format!("Failed to send USB command : {}", e) )
                 );
             },
 
@@ -391,7 +419,7 @@ impl Application {
                 // Main view.
                 a: Box::new( Configuration::Pane( PaneGridView::Main ) ),
                 // Configuration view.
-                b: Box::new( Configuration::Pane( PaneGridView::Configuration ) ),
+                b: Box::new( Configuration::Pane( PaneGridView::RightSidebar ) ),
             };
 
             // Main view and console.
@@ -430,7 +458,7 @@ impl Drop for Application {
 pub enum PaneGridView {
     Console,
     Main,
-    Configuration,
+    RightSidebar,
     Controller,
     WatchVars,
 }

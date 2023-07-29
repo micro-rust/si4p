@@ -9,7 +9,10 @@ use crate::gui::Message;
 #[derive(Clone, Debug)]
 pub enum Event {
     /// Sets the show state of the given peripheral.
-    PeripheralShow(usize, bool),
+    ShowPeripheral(usize, bool),
+
+    /// Sets the show state of the peripheral list.
+    ShowPeripheralList(bool),
 }
 
 impl Into<Message> for Event {

@@ -6,6 +6,7 @@
 mod configuration;
 mod message;
 mod view;
+mod probe;
 mod selector;
 mod target;
 
@@ -14,6 +15,8 @@ pub(self) use configuration::*;
 
 pub use message::Message;
 pub use view::USBSelectorView;
+
+use probe::ProbeSelector;
 
 use selector::{
     ShowAction, USBSelector,
@@ -33,12 +36,14 @@ pub(super) struct USBConfiguration {
     defmt: USBSelector<DefmtConfig>,
 
     /// USB selector for `probe-rs`.
-    probe: USBSelector<ProbeConfig>,
+    probe: ProbeSelector,
 
-    target: TargetSelection,
+    /// Target.
+    target: crate::gui::right::target::TargetSelector,
 
-    /// Current `defmt` file.
-    file: Option<PathBuf>,
+    /// Current ELF.
+    //file: Option<PathBuf>,
+    file: crate::gui::right::elf::ELFSelector,
 }
 
 impl crate::gui::common::Widget for USBConfiguration {
@@ -57,10 +62,12 @@ impl crate::gui::common::Widget for USBConfiguration {
         let topbar = self.topbar();
 
         // Create the file path selection.
-        let file = self.filepath();
+        //let file = self.filepath();
+        let file = iced::widget::component( self.file );
 
         // Create the target selection.
-        let target = self.target.view();
+        //let target = self.target.view();
+        let target = iced::widget::component( self.target.clone() );
 
         Column::new()
             .padding(5)
@@ -79,9 +86,7 @@ impl crate::gui::common::Widget for USBConfiguration {
 
             Message::Defmt( action ) => self.defmt.show( &action ),
 
-            Message::Probe( action ) => self.probe.show( &action ),
-
-            Message::TargetTextChange( new ) => self.target.textinput( new ),
+            //Message::TargetTextChange( new ) => self.target.textinput( new ),
 
             _ => (),
         }
@@ -96,15 +101,17 @@ impl USBConfiguration {
         Self {
             selected: USBSelectorView::Defmt,
             defmt: USBSelector::new( defmtaction, defmtselect, DefmtConfig::new() ),
-            probe: USBSelector::new( probeaction, probeselect, ProbeConfig::new() ),
-            target: TargetSelection::new( library ),
-            file: None,
+            probe: ProbeSelector::new(),
+            //target: TargetSelection::new( library ),
+            target: crate::gui::right::target::TargetSelector::new( library ),
+            //file: None,
+            file: crate::gui::right::elf::ELFSelector::new(),
         }
     }
 
     /// Updates the current file path.
     pub(super) fn setpath(&mut self, path: std::path::PathBuf) {
-        self.file = Some(path);
+        //self.file = Some(path);
     }
 
     /// Rebuilds the lists of USBs.
@@ -113,19 +120,20 @@ impl USBConfiguration {
         let connected = crate::usb::CONNECTED.blocking_read();
 
         self.defmt.rebuild(&connected);
-        self.probe.rebuild(&connected);
+        self.probe.rebuild();
     }
 
     /// Marks the given target as selected.
     pub(super) fn select(&mut self, name: String) {
-        self.target.mark( name );
+        //self.target.mark( name );
     }
 
     /// UnMarks the given target as selected.
     pub(super) fn deselect(&mut self) {
-        self.target.unmark();
+        //self.target.unmark();
     }
 
+    /*
     /// Creates the view of the file path selection.
     fn filepath(&self) -> iced::Element<crate::gui::Message> {
         use iced::widget::{
@@ -155,6 +163,7 @@ impl USBConfiguration {
             .push(reload)
             .into()
     }
+    */
 
     /// Creates the view of the topbar.
     /// This includes a defmt and probe tab view selector.
@@ -199,5 +208,5 @@ fn defmtselect(target: crate::usb::common::USBTarget) -> crate::gui::Message {
 }
 
 fn probeselect(target: crate::usb::common::USBTarget) -> crate::gui::Message {
-    crate::gui::Message::USB( crate::usb::Command::ProbeOpen( target ) )
+    crate::gui::Message::None
 }

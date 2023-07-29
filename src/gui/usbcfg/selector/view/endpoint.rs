@@ -31,10 +31,6 @@ impl crate::gui::common::Widget for USBEndpointView {
 
         title
     }
-
-    fn update(&mut self, event: Self::Event) -> iced::Command<crate::gui::Message> {
-        iced::Command::none()
-    }
 }
 
 impl USBEndpointView {
