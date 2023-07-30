@@ -27,7 +27,12 @@ use iced::{
     widget::pane_grid::State as PaneGridState,
 };
 
-use std::sync::Arc;
+use probe_rs::DebugProbeInfo;
+
+use std::{
+    path::PathBuf,
+    sync::Arc,
+};
 
 use target::TargetSelector;
 
@@ -71,17 +76,25 @@ impl crate::gui::common::Widget for RightSidebar {
             },
         };
 
-        // Build the ELF select component.
-        let file = component( self.file );
-
         // Build the pane grid.
         let panegrid = PaneGrid::new(&self.panes, |_, pane, _| match pane {
                 View::Device => {
                     // Create the title bar.
                     let title_bar = TitleBar::new( Text::new("Debug configuration") );
 
-                    // Check if the content is minimized.
+                    // Create the body.
                     let body = component( self.device.clone() );
+
+                    Content::new( body )
+                        .title_bar(title_bar)
+                },
+
+                View::Elf => {
+                    // Create the title bar.
+                    let title_bar = TitleBar::new( Text::new( "Executable file" ) );
+
+                    // Create the body.
+                    let body = component( self.file.clone() );
 
                     Content::new( body )
                         .title_bar(title_bar)
@@ -91,7 +104,7 @@ impl crate::gui::common::Widget for RightSidebar {
                     // Create the title bar.
                     let title_bar = TitleBar::new( Text::new("Target selector") );
 
-                    // Check if the content is minimized.
+                    // Create the body.
                     let body = component( self.target.clone() );
 
                     Content::new( body )
@@ -104,7 +117,6 @@ impl crate::gui::common::Widget for RightSidebar {
             .on_resize(10, |event| Message::Right( Event::PanegridResize(event) ));
         
         Column::new()
-            .push(file)
             .push(panegrid)
             .into()
     }
@@ -124,7 +136,19 @@ impl RightSidebar {
     /// Rebuilds the USB tree.
     #[inline]
     pub(super) fn rebuild(&mut self) {
-        //self.device.rebuild();
+        self.device.rebuild();
+    }
+
+    /// Sets a valid ELF path.
+    #[inline]
+    pub(super) fn setpath(&mut self, path: PathBuf) {
+        self.file.setpath( path );
+    }
+
+    /// Sets the current debug probe.
+    #[inline]
+    pub(super) fn setprobe(&mut self, info: DebugProbeInfo) {
+        self.device.setprobe(info);
     }
 
     /// Builds the pane grid structure.
@@ -134,8 +158,13 @@ impl RightSidebar {
         // Build the configuration.
         let configuration = Configuration::Split {
             axis: Axis::Horizontal,
-            ratio: 0.5,
-            a: Box::new( Configuration::Pane( View::Target ) ),
+            ratio: 0.6667,
+            a: Box::new( Configuration::Split {
+                axis: Axis::Horizontal,
+                ratio: 0.5,
+                a: Box::new( Configuration::Pane( View::Elf    ) ),
+                b: Box::new( Configuration::Pane( View::Target ) ),
+            } ),
             b: Box::new( Configuration::Pane( View::Device ) ),
         };
 
@@ -147,9 +176,12 @@ impl RightSidebar {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum View {
-    /// Target selection view.
-    Target,
-
     /// Device selection view.
     Device,
+
+    /// ELF selection view.
+    Elf,
+
+    /// Target selection view.
+    Target,
 }

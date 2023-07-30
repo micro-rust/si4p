@@ -282,6 +282,7 @@ impl App for Application {
 
                 // Send the path to be reloaded.
                 //self.usbcfg.setpath( path );
+                self.right.setpath( path.clone() );
             },
 
             // Set the current SVD in the peripheral selector.
@@ -295,7 +296,8 @@ impl App for Application {
 
             // Message to rebuild the USB tree.
             Message::USBTreeRebuild => {
-                //self.usbcfg.rebuild();
+                // Rebuild the device tree on the right sidebar.
+                self.right.rebuild();
             },
 
             Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
@@ -317,6 +319,14 @@ impl App for Application {
             Message::DeselectTarget => {
                 // Mark the target as deselected.
                 //self.usbcfg.deselect();
+            },
+
+            // Messages about debug probes.
+            // ****************************************************************
+
+            Message::SetDebugProbe( info ) => {
+                // Notify the right sidebar.
+                self.right.setprobe( info.clone() );
             },
 
             _ =>(),
@@ -455,10 +465,18 @@ impl Drop for Application {
 }
 
 
+/// All possible views of the application.
 pub enum PaneGridView {
+    /// UI view of the console.
     Console,
+
+    /// UI view of the main screen.
     Main,
+
+    /// UI view of the right sidebar.
     RightSidebar,
+
+    
     Controller,
     WatchVars,
 }

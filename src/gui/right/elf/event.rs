@@ -5,9 +5,12 @@
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Event {
-    /// Opens a selection dialog.
-    Select,
+    /// Flashes the current file.
+    Flash,
 
     /// Reloads the current file.
     Reload,
+
+    /// Opens a selection dialog.
+    Select,
 }

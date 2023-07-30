@@ -4,6 +4,8 @@
 
 use crate::target::Peripheral;
 
+use probe_rs::DebugProbeInfo;
+
 use std::{
     path::PathBuf,
     sync::Arc,
@@ -32,6 +34,9 @@ pub enum Message {
 
     /// Select defmt file.
     SelectELF( Option<PathBuf> ),
+
+    /// Flashes the current ELF file.
+    FlashELF,
 
     /// Loads the given defmt file.
     LoadELF( PathBuf ),
@@ -64,6 +69,9 @@ pub enum Message {
 
     /// Rebuild the list of USBs.
     USBTreeRebuild,
+
+    /// A new debug probe is open.
+    SetDebugProbe( DebugProbeInfo ),
 
     /// A message of the USB configuration component.
     //USBConfiguration( super::usbcfg::Message ),
