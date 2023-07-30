@@ -117,7 +117,7 @@ impl Application {
 
             id: Some( String::from("Si4+ instance") ),
 
-            default_text_size: 17.0,
+            default_text_size: 14.0,
             exit_on_close_request: true,
             antialiasing: true,
             default_font: iced::Font::MONOSPACE,

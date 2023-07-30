@@ -14,5 +14,5 @@ compile_error!("Attempted to build both GUI and TUI applications");
 
 pub fn main() {
     #[cfg(feature = "gui")]
-    defmthost::gui::Application::start();
+    si4p::gui::Application::start();
 }

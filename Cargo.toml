@@ -1,5 +1,5 @@
 [package]
-name = "defmthost"
+name = "si4p"
 version = "0.1.0"
 edition = "2021"
 
@@ -87,5 +87,5 @@ gui = ["application", "iced", "iced_native", "marcel", "ron", "rfd"]
 
 
 [[bin]]
-name = "defmthost"
+name = "si4p"
 required-features = ["application"]
