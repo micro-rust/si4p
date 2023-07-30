@@ -26,7 +26,10 @@ pub enum Command {
     ProbeClose,
 
     /// Sets the debug target.
-    DebugTarget( String ),
+    SetDebugTarget( String ),
+
+    /// Resets the debug target.
+    ClearDebugTarget,
 
     /// Sets the defmt file.
     SetDefmtFile( std::sync::Arc<[u8]> ),

@@ -199,6 +199,11 @@ impl USBSelector {
         self.probe = Some( info );
     }
 
+    /// Clears the active debug probe.
+    pub(super) fn clearprobe(&mut self) {
+        self.probe = None;
+    }
+
     /// Creates the probe title.
     fn probetitle(probe: &DebugProbeInfo) -> Element<Event> {
         use iced::widget::{

@@ -76,6 +76,9 @@ impl crate::gui::common::Widget for RightSidebar {
             },
         };
 
+        // Create the file selection.
+        let file = component( self.file.clone() );
+
         // Build the pane grid.
         let panegrid = PaneGrid::new(&self.panes, |_, pane, _| match pane {
                 View::Device => {
@@ -84,17 +87,6 @@ impl crate::gui::common::Widget for RightSidebar {
 
                     // Create the body.
                     let body = component( self.device.clone() );
-
-                    Content::new( body )
-                        .title_bar(title_bar)
-                },
-
-                View::Elf => {
-                    // Create the title bar.
-                    let title_bar = TitleBar::new( Text::new( "Executable file" ) );
-
-                    // Create the body.
-                    let body = component( self.file.clone() );
 
                     Content::new( body )
                         .title_bar(title_bar)
@@ -117,7 +109,8 @@ impl crate::gui::common::Widget for RightSidebar {
             .on_resize(10, |event| Message::Right( Event::PanegridResize(event) ));
         
         Column::new()
-            .push(panegrid)
+            .push( file )
+            .push( panegrid )
             .into()
     }
 }
@@ -151,6 +144,24 @@ impl RightSidebar {
         self.device.setprobe(info);
     }
 
+    /// Clears the current debug probe.
+    #[inline]
+    pub(super) fn clearprobe(&mut self) {
+        self.device.clearprobe();
+    }
+
+    /// Selects the target.
+    #[inline]
+    pub(super) fn select(&mut self, name: String) {
+        self.target.select(name);
+    }
+
+    /// Deselects the target.
+    #[inline]
+    pub(super) fn deselect(&mut self) {
+        self.target.deselect();
+    }
+
     /// Builds the pane grid structure.
     fn panegrid() -> PaneGridState<View> {
         use iced::widget::pane_grid::{ Axis, Configuration, };
@@ -159,12 +170,7 @@ impl RightSidebar {
         let configuration = Configuration::Split {
             axis: Axis::Horizontal,
             ratio: 0.6667,
-            a: Box::new( Configuration::Split {
-                axis: Axis::Horizontal,
-                ratio: 0.5,
-                a: Box::new( Configuration::Pane( View::Elf    ) ),
-                b: Box::new( Configuration::Pane( View::Target ) ),
-            } ),
+            a: Box::new( Configuration::Pane( View::Target ) ),
             b: Box::new( Configuration::Pane( View::Device ) ),
         };
 
@@ -178,9 +184,6 @@ impl RightSidebar {
 pub enum View {
     /// Device selection view.
     Device,
-
-    /// ELF selection view.
-    Elf,
 
     /// Target selection view.
     Target,

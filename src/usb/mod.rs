@@ -207,12 +207,14 @@ impl USBLogger {
                 },
 
                 // Request to open a probe connection.
-                Command::ProbeOpen( info ) => match self.probeusb.probe( info.clone() ) {
+                Command::ProbeOpen( info ) => match self.probeusb.open( info.clone() ) {
                     Ok(true) => {
                         // Log the information.
+                        self.debug("Set the debug probe");
                         self.info("Opened a debug probe session");
 
                         // Send the rebuild command.
+                        self.txmessage( Message::SetDebugProbe( info ) );
                         self.txmessage( Message::NewDebugSession );
                     },
 
@@ -220,24 +222,63 @@ impl USBLogger {
                         // Log the information.
                         self.debug("Set the debug probe");
 
-                        // Send the probe set command.
+                        // Send the rebuild command.
                         self.txmessage( Message::SetDebugProbe( info ) )
                     },
 
                     Err(e) => self.error( format!("Debug Probe Error : {}", e) )
                 },
 
+                // Request to close a probe connection.
+                Command::ProbeClose => {
+                    // Log the information.
+                    self.debug( "Remove current target" );
+
+                    // Close the probe.
+                    if self.probeusb.close() {
+                        self.info( "Closed the current session" );
+                    }
+
+                    // Send the rebuild command.
+                    self.txmessage( Message::ClearDebugProbe );
+                },
+
+
                 // Request to set the debug target.
-                Command::DebugTarget( target ) => match self.probeusb.target(target) {
+                Command::SetDebugTarget( target ) => match self.probeusb.target(target.clone()) {
                     Ok(true) => {
                         // Log the information.
+                        self.debug( "Set the debug target" );
                         self.info("Opened a debug probe session");
 
                         // Send the rebuild command.
+                        self.txmessage( Message::SetDebugTarget(target) );
                         self.txmessage( Message::NewDebugSession );
                     },
-                    Ok(false) => self.debug("Set the debug target"),
+
+                    Ok(false) => {
+                        // Log the information.
+                        self.debug("Set the debug target");
+
+                        // Send the rebuild command.
+                        self.txmessage( Message::SetDebugTarget(target) );
+                    },
+
                     Err(e) => self.error( format!("Debug Probe Error : {}", e) )
+                },
+
+                // Request to remove the target.
+                Command::ClearDebugTarget => {
+                    // Log the information.
+                    self.debug( "Remove current target" );
+
+                    // Remove the target.
+                    if self.probeusb.notarget() {
+                        self.info( "Closed the current session" );
+                    }
+
+                    // Send the rebuild command.
+                    self.txmessage( Message::ClearDebugTarget );
                 },
 
                 // Request to set the debu

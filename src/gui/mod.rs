@@ -300,24 +300,6 @@ impl App for Application {
 
             Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
 
-            Message::SelectTarget( name ) => {
-                // Send the command to the USB.
-                self.usbcommand( USBCommand::DebugTarget(name.clone()) );
-
-                // Mark the target as selected.
-                //self.usbcfg.select( name.clone() );
-
-                // Clone the library reference.
-                let library = Arc::clone( &self.library );
-
-                // Parse the associated SVD.
-                return Command::perform( commands::svd::loadSVD(name, library), |m| m );
-            },
-
-            Message::DeselectTarget => {
-                // Mark the target as deselected.
-                //self.usbcfg.deselect();
-            },
 
             // Messages about debug probes.
             // ****************************************************************
@@ -325,6 +307,27 @@ impl App for Application {
             Message::SetDebugProbe( info ) => {
                 // Notify the right sidebar.
                 self.right.setprobe( info.clone() );
+            },
+
+            Message::ClearDebugProbe => {
+                // Notify the right sidebar.
+                self.right.clearprobe();
+            },
+
+            Message::SetDebugTarget( target ) => {
+                // Mark the target as selected.
+                self.right.select( target.clone() );
+
+                // Clone the library reference.
+                let library = Arc::clone( &self.library );
+
+                // Parse the associated SVD.
+                return Command::perform( commands::svd::loadSVD(target, library), |m| m );
+            },
+
+            Message::ClearDebugTarget => {
+                // Mark the target as deselected.
+                self.right.deselect();
             },
 
             _ =>(),

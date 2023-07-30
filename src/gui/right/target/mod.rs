@@ -10,6 +10,7 @@ mod state;
 use crate::{
     gui::Message,
     library::Library,
+    usb::Command,
 };
 
 use event::Event;
@@ -28,13 +29,9 @@ use std::sync::Arc;
 pub struct TargetSelector {
     /// Reference to the library.
     library: Arc<Library>,
-}
 
-impl TargetSelector {
-    /// Static initializer.
-    pub const fn new(library: Arc<Library>) -> Self {
-        Self { library }
-    }
+    /// The currently selected target.
+    selected: Option<String>,
 }
 
 impl Component<Message, Renderer> for TargetSelector {
@@ -70,19 +67,16 @@ impl Component<Message, Renderer> for TargetSelector {
                 // Update the string.
                 state.input = target.clone();
 
-                // Lock the target.
-                state.selected = Some( target.clone() );
-
                 // Emit an message to select the target.
-                Some( Message::SelectTarget( target ) )
+                Some( Command::SetDebugTarget( target ).into() )
             },
 
             Event::DeselectTarget => {
                 // Unlock the target.
-                state.selected = None;
+                self.selected = None;
 
                 // Emit a message to deselect the target.
-                Some( Message::DeselectTarget )
+                Some( Command::ClearDebugTarget.into() )
             },
         }
     }
@@ -100,7 +94,7 @@ impl Component<Message, Renderer> for TargetSelector {
             }
         };
 
-        match &state.selected {
+        match &self.selected {
             Some( name ) => {
                 // Create the selected text.
                 let selected = Text::new( name.clone() )
@@ -189,5 +183,24 @@ impl Component<Message, Renderer> for TargetSelector {
                     .into()
             },
         }
+    }
+}
+
+impl TargetSelector {
+    /// Static initializer.
+    pub(super) const fn new(library: Arc<Library>) -> Self {
+        Self { library, selected: None }
+    }
+
+    /// Selects the given target.
+    #[inline]
+    pub(super) fn select(&mut self, name: String) {
+        self.selected = Some(name);
+    }
+
+    /// Deselects the current target.
+    #[inline]
+    pub(super) fn deselect(&mut self) {
+        self.selected = None;
     }
 }

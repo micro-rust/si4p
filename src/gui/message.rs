@@ -53,10 +53,10 @@ pub enum Message {
     NewDebugSession,
 
     /// Selects the given target.
-    SelectTarget( String ),
+    SetDebugTarget( String ),
 
     /// Deselects the current target.
-    DeselectTarget,
+    ClearDebugTarget,
 
     /// Indicates a change in the expansion status of a USB config display.
     USBConfigExpanded( (u16, u16), u8, bool ),
@@ -72,6 +72,9 @@ pub enum Message {
 
     /// A new debug probe is open.
     SetDebugProbe( DebugProbeInfo ),
+
+    /// The debug probe was removed.
+    ClearDebugProbe,
 
     /// A message of the USB configuration component.
     //USBConfiguration( super::usbcfg::Message ),

@@ -41,12 +41,26 @@ impl ProbeHandle {
     }
 
     /// Opens the connection to the given device.
-    pub fn probe(&mut self, info: DebugProbeInfo) -> Result<bool, Box<dyn Error>> {
+    pub fn open(&mut self, info: DebugProbeInfo) -> Result<bool, Box<dyn Error>> {
         // Save the information of the probe in case of a disconnection.
         self.info = Some(info);
 
         // Attempt to attach to a session.
         self.session()
+    }
+
+    /// Closes the connection to the given device.
+    pub fn close(&mut self) -> bool {
+        // Save the information of the probe in case of a disconnection.
+        self.info = None;
+
+        // Check if a session was open.
+        let session = self.session.is_some();
+
+        // Clear the session.
+        self.session = None;
+
+        session
     }
 
     /// Sets the target of the debug session. If a probe is already selected, open the session.
@@ -56,6 +70,19 @@ impl ProbeHandle {
 
         // Attempt to attach to a session.
         self.session()
+    }
+
+    pub fn notarget(&mut self) -> bool {
+        // Clear the target.
+        self.target = None;
+
+        // Check if a session was open.
+        let session = self.session.is_some();
+
+        // Clear the session.
+        self.session = None;
+
+        session
     }
 
     /// If possible, opens a session with the current probe and target.
