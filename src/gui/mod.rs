@@ -78,11 +78,9 @@ pub struct Application {
 impl Application {
     /// Starts the Probe subapplication.
     pub fn start() {
-        use iced::{
-            window::{
-                PlatformSpecific, Position,
-                Settings as Window,
-            },
+        use iced::window::{
+            PlatformSpecific, Position,
+            Settings as Window,
         };
 
         // Build the app settings.

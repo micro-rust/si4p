@@ -10,9 +10,7 @@ mod theme;
 use iced::{
     BorderRadius, Command, Length,
 
-    alignment::{
-        Horizontal,
-    },
+    alignment::Horizontal,
 
     widget::{
         Column, Container, PickList,
