@@ -207,7 +207,7 @@ impl USBLogger {
                 },
 
                 // Request to open a probe connection.
-                Command::ProbeOpen( info ) => match self.probeusb.probe(info) {
+                Command::ProbeOpen( info ) => match self.probeusb.probe( info.clone() ) {
                     Ok(true) => {
                         // Log the information.
                         self.info("Opened a debug probe session");
@@ -215,7 +215,15 @@ impl USBLogger {
                         // Send the rebuild command.
                         self.txmessage( Message::NewDebugSession );
                     },
-                    Ok(false) => self.debug("Set the debug probe"),
+
+                    Ok(false) => {
+                        // Log the information.
+                        self.debug("Set the debug probe");
+
+                        // Send the probe set command.
+                        self.txmessage( Message::SetDebugProbe( info ) )
+                    },
+
                     Err(e) => self.error( format!("Debug Probe Error : {}", e) )
                 },
 
