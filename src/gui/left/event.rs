@@ -1,4 +1,4 @@
-//! Internal events of the right sidebar.
+//! Internal events of the left sidebar.
 
 
 
@@ -16,6 +16,6 @@ pub enum Event {
 
 impl Into<Message> for Event {
     fn into(self) -> Message {
-        Message::Right( self )
+        Message::Left( self )
     }
 }

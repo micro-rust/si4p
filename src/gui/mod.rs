@@ -10,6 +10,8 @@ mod message;
 mod theme;
 //mod usbcfg;
 
+// Sidebar modules.
+mod left;
 mod right;
 
 
@@ -65,6 +67,9 @@ pub struct Application {
 
     /// Data library of the application.
     library: Arc<super::library::Library>,
+
+    /// Left sidebar.
+    left: left::LeftSidebar,
 
     /// Right sidebar.
     right: right::RightSidebar,
@@ -195,7 +200,8 @@ impl App for Application {
         // Create the GUI controller of the target.
         let controller = controller::Controller::new();
 
-        // Create the right sidebar.
+        // Create the sidebars.
+        let left  = left::LeftSidebar::new();
         let right = right::RightSidebar::new(library.clone());
 
         // Creates the new application.
@@ -208,6 +214,7 @@ impl App for Application {
             library,
             theme,
 
+            left,
             right,
         };
 
@@ -229,30 +236,14 @@ impl App for Application {
         use common::Widget;
 
         match message {
-            // A new message for the console.
-            Message::Console( message ) => return self.console.update( message ),
-
-            Message::ConsoleEntry( entry ) => self.console.push( entry ),
 
             Message::Controller( event ) => return self.controller.update(event),
 
-            Message::Right( event ) => return self.right.update(event),
 
             // A message for the USB usbcfg.
             //Message::Selector( inner ) => return self.usbcfg.update(inner),
             //Message::USBConfiguration( inner ) => return self.usbcfg.update( inner ),
 
-            // A message for the USB handler.
-            Message::USB( command ) => self.usbcommand( command ),
-
-            // The USB thread crashed and the console router is closed.
-            Message::USBThreadCrashed => if self.router.is_some() {
-                // Log this error.
-                self.console.push( console::Entry::usbcrash() );
-
-                // Remove the current router from the application.
-                self.router = None;
-            },
 
             // Selects a new defmt file.
             Message::SelectELF( maybe ) => return Command::perform( commands::elf::selectELF(maybe), |m| m ),
@@ -292,14 +283,40 @@ impl App for Application {
                 self.controller.target(peripherals);
             },
 
-            // Message to rebuild the USB tree.
+            // Global UI view messages.
+            // ****************************************************************
+
+            Message::PaneGridResize( resize ) => self.panes.resize(&resize.split, resize.ratio.clamp(0.15, 0.85)),
+
+
+            // Messages about the USB.
+            // ****************************************************************
+
+            Message::USB( command ) => self.usbcommand( command ),
+
             Message::USBTreeRebuild => {
                 // Rebuild the device tree on the right sidebar.
                 self.right.rebuild();
             },
 
-            Message::PaneGridResize( event ) => self.panes.resize(&event.split, event.ratio),
+            Message::USBThreadCrashed => if self.router.is_some() {
+                // Log this error.
+                self.console.push( console::Entry::usbcrash() );
 
+                // Remove the current router from the application.
+                self.router = None;
+            },
+
+            // Messages of each of the widget views.
+            // ****************************************************************
+
+            Message::Console( message ) => return self.console.update( message ),
+
+            Message::Right( event ) => return self.right.update(event),
+
+            Message::Left( event ) => return self.left.update(event),
+
+            Message::ConsoleEntry( entry ) => self.console.push( entry ),
 
             // Messages about debug probes.
             // ****************************************************************
@@ -357,7 +374,7 @@ impl App for Application {
 
             PaneGridView::RightSidebar => Content::new( self.right.view() ),
 
-            PaneGridView::Controller => Content::new( self.controller.view() ),
+            PaneGridView::LeftSidebar => Content::new( self.left.view() ),
 
             _ => Content::new( iced::widget::Column::new() ),
         })
@@ -413,16 +430,6 @@ impl Application {
 
         // Build the configuration.
         let configuration = {
-            // Bottom and top of the left sidebar.
-            let left = Configuration::Split {
-                axis: Axis::Horizontal,
-                ratio: 0.5,
-                // Top box for cores.
-                a: Box::new( Configuration::Pane( PaneGridView::Controller ) ),
-                // Bottom box for watch and vars.
-                b: Box::new( Configuration::Pane( PaneGridView::WatchVars ) ),
-            };
-
             // Main view and right pane.
             let right = Configuration::Split {
                 axis: Axis::Vertical,
@@ -448,7 +455,7 @@ impl Application {
                 axis: Axis::Vertical,
                 ratio: 0.2,
                 // Left sidebar
-                a: Box::new( left ),
+                a: Box::new( Configuration::Pane( PaneGridView::LeftSidebar ) ),
                 // The rest
                 b: Box::new( center )
             }
@@ -477,7 +484,6 @@ pub enum PaneGridView {
     /// UI view of the right sidebar.
     RightSidebar,
 
-    
-    Controller,
-    WatchVars,
+    /// UI view of the left sidebar.
+    LeftSidebar,
 }

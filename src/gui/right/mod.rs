@@ -57,7 +57,7 @@ impl crate::gui::common::Widget for RightSidebar {
     fn update(&mut self, event: Self::Event) -> Command<Message> {
         match event {
             // Process a resize event.
-            Event::PanegridResize( resize ) => self.panes.resize(&resize.split, resize.ratio),
+            Event::PaneGridResize( resize ) => self.panes.resize(&resize.split, resize.ratio.clamp(0.25, 0.75)),
         }
 
         Command::none()
@@ -106,7 +106,7 @@ impl crate::gui::common::Widget for RightSidebar {
             .height(Length::Fill)
             .width(Length::Fill)
             .spacing(2)
-            .on_resize(10, |event| Message::Right( Event::PanegridResize(event) ));
+            .on_resize(25, |event| Event::PaneGridResize(event).into() );
         
         Column::new()
             .push( file )

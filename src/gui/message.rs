@@ -20,6 +20,9 @@ pub enum Message {
     /// A new console entry.
     ConsoleEntry( crate::common::Entry ),
 
+    /// Events of the left sidebar.
+    Left( super::left::Event ),
+
     /// Events of the right sidebar.
     Right( super::right::Event ),
 
