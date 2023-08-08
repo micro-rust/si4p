@@ -10,7 +10,7 @@ use crate::{
 };
 
 use iced::{
-    Element, Length, Point, Rectangle, Renderer, Size, Theme,
+    Element, Length, Rectangle, Renderer, Size, Theme,
 
     advanced::{
         Clipboard, Shell,

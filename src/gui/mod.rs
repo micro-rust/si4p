@@ -5,7 +5,6 @@
 mod commands;
 mod common;
 pub mod console;
-mod controller;
 mod message;
 mod theme;
 //mod usbcfg;
@@ -25,10 +24,7 @@ use iced::{
 
     Application as App, Command, Element, Theme,
 
-    widget::{
-        Component,
-        pane_grid::State as PaneGridState,
-    },
+    widget::pane_grid::State as PaneGridState,
 };
 
 pub use message::Message;
@@ -50,9 +46,6 @@ use tokio::sync::{
 pub struct Application {
     /// The console of the application.
     console: console::Console,
-
-    /// GUI Controller of the target.
-    controller: controller::Controller,
 
     /// The usbcfg of USB devices.
     //usbcfg: usbcfg::USBConfiguration,
@@ -197,9 +190,6 @@ impl App for Application {
         // Create the pane grid structure.
         let panes = Self::panegrid();
 
-        // Create the GUI controller of the target.
-        let controller = controller::Controller::new();
-
         // Create the sidebars.
         let left  = left::LeftSidebar::new();
         let right = right::RightSidebar::new(library.clone());
@@ -207,7 +197,6 @@ impl App for Application {
         // Creates the new application.
         let app = Self {
             console,
-            controller,
             router,
             usbcmd,
             panes,
@@ -240,7 +229,7 @@ impl App for Application {
 
         match message {
 
-            Message::Controller( event ) => return self.controller.update(event),
+            //Message::Controller( event ) => return self.controller.update(event),
 
 
             // A message for the USB usbcfg.
@@ -278,7 +267,7 @@ impl App for Application {
                 //self.peripherals = peripherals.clone();
 
                 // Update the controller data.
-                self.controller.target(peripherals);
+                //self.controller.target(peripherals);
             },
 
             // Global UI view messages.

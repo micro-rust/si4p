@@ -188,8 +188,6 @@ impl USBSelector {
 
     /// Rebuilds the device tree.
     pub(super) fn rebuild(&mut self) {
-        use probe_rs::Probe;
-
         // Updates the probes.
         self.probes = Probe::list_all();
     }

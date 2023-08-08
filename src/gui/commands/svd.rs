@@ -2,7 +2,7 @@
 
 
 
-use svd_parser::svd::{MaybeArray, RegisterCluster, Access, RegisterProperties, access, WriteConstraint};
+use svd_parser::svd::MaybeArray;
 
 use crate::{
     gui::console::{

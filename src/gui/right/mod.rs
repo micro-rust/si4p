@@ -69,7 +69,7 @@ impl crate::gui::common::Widget for RightSidebar {
 
             widget::{
                 component,
-                Button, Column, PaneGrid, Text,
+                Column, PaneGrid, Text,
                 pane_grid::{
                     Content, TitleBar,
                 },

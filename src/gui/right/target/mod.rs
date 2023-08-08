@@ -87,10 +87,6 @@ impl Component<Message, Renderer> for TargetSelector {
 
             widget::{
                 Button, Column, Row, Scrollable, Text, TextInput,
-
-                scrollable::{
-                    Direction, Properties,
-                },
             }
         };
 
@@ -167,17 +163,12 @@ impl Component<Message, Renderer> for TargetSelector {
                             column.push( row )
                         });
 
-                    // Create the scrollable properties.
-                    let properties = Properties::new()
-                        .scroller_width(15)
-                        .width(5)
-                        .margin(2);
-
                     Scrollable::new( buttons )
                         .width( Length::Fill )
                 };
 
                 Column::new()
+                    .padding( 5 )
                     .push( top )
                     .push( list )
                     .into()
