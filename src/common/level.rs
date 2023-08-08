@@ -21,7 +21,7 @@ pub enum Level {
 
 impl Level {
     /// How to display the level in the console.
-    pub(super) fn display(&self) -> &str {
+    pub fn display(&self) -> &'static str {
         match self {
             Level::Error => " ERROR ",
             Level::Warn  => " WARN  ",

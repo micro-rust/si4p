@@ -2,6 +2,7 @@
 
 
 
+mod entries;
 mod message;
 mod theme;
 
@@ -36,23 +37,14 @@ pub use message::Message;
 
 
 pub struct Console {
-    /// All entries currently logged.
-    entries: Vec<Entry>,
-
-    /// List of entries to display after applying filters.
-    selected: Vec<usize>,
-
-    /// Level filter.
-    level: Level,
-
-    /// Source filter.
-    source: Source,
-
     /// Unique scrollable ID.
     scrollid: Id,
 
     /// Theme of the console.
     theme: Theme,
+
+    /// Internal entries widget.
+    inner: entries::Entries,
 }
 
 impl Console {
@@ -61,12 +53,9 @@ impl Console {
         let theme = Self::theme(theme);
 
         Self {
-            entries: Vec::new(),
-            selected: Vec::new(),
-            level: Level::Info,
-            source: Source::All,
             scrollid: Id::new("console"),
             theme,
+            inner: entries::Entries::new()
         }
     }
 
@@ -75,18 +64,18 @@ impl Console {
         match message {
             Message::FilterLevel(level) => {
                 // Set the new level filter.
-                self.level = level;
+                self.inner.level = level;
 
                 // Rebuild the list.
-                self.rebuild();
+                self.inner.rebuild();
             },
 
             Message::FilterSource(source) => {
                 // Set the new source filter.
-                self.source = source;
+                self.inner.source = source;
 
                 // Rebuild the list.
-                self.rebuild();
+                self.inner.rebuild();
             },
         }
 
@@ -123,17 +112,9 @@ impl Console {
 
 impl Console {
     /// Adds a new entry.
+    #[inline]
     pub(super) fn push(&mut self, entry: Entry) {
-        // Check if the entry matches the current filter.
-        let matches = entry.matches(self.level, self.source);
-
-        // Push the entry.
-        self.entries.push(entry);
-
-        // Select the entry for display if it matched the filters.
-        if matches {
-            self.selected.push(self.entries.len() - 1);
-        }
+        self.inner.push(entry);
     }
 
     /// Creates the theme of the console
@@ -236,7 +217,7 @@ impl Console {
         // Create the dropdown filter for the level.
         let level = PickList::new(
             &LEVELS[..],
-            Some( self.level.clone() ),
+            Some( self.inner.level.clone() ),
             |l| Message::FilterLevel(l).into(),
         )
         .style( (*self.theme.picklist).clone() );
@@ -244,7 +225,7 @@ impl Console {
         // Create the dropdown filter for the source.
         let source = PickList::new(
             &SOURCE[..],
-            Some( self.source.clone() ),
+            Some( self.inner.source.clone() ),
             |s| Message::FilterSource(s).into(),
         )
         .style( (*self.theme.picklist).clone() );
@@ -268,52 +249,6 @@ impl Console {
             Direction, Scrollable,
         };
 
-        // Create the entries.
-        let entries = self.selected.iter()
-            .map(|i| {
-                // Get the entry.
-                let entry = &self.entries[*i];
-
-                // Get the source.
-                let source = Container::new( Text::new( format!("[{}]", entry.source()) ).style( (*self.theme.text).clone() ) )
-                    .align_x( Horizontal::Center )
-                    .width(Length::FillPortion(8));
-
-                // Get the level.
-                let mut lvl = Text::new( format!("{}", entry.level()));
-
-                lvl = match entry.level() {
-                    Level::Trace => lvl.style( *self.theme.level[0] ),
-                    Level::Debug => lvl.style( *self.theme.level[1] ),
-                    Level::Info  => lvl.style( *self.theme.level[2] ),
-                    Level::Warn  => lvl.style( *self.theme.level[3] ),
-                    Level::Error => lvl.style( *self.theme.level[4] ),
-                };
-
-                let level = Container::new( lvl )
-                    .align_x( Horizontal::Center )
-                    .width(Length::FillPortion(8));
-
-                // Get the message.
-                let text = Container::new( Text::new( entry.text() ).style( (*self.theme.text).clone() ) )
-                    .width(Length::FillPortion(90));
-
-                // Container to style it.
-                let row = Row::new()
-                    .width(Length::Fill)
-                    .spacing(5)
-                    .push(source)
-                    .push(level)
-                    .push(text);
-
-                Container::new(row) 
-                    .style( (*self.theme.background).clone() )
-                    .width(Length::Fill)
-            })
-            .fold(Column::new().spacing(2).width(Length::Fill), |column, entry| {
-                column.push(entry)
-            });
-
         // Build the scrollable properties.
         let properties = Properties::new()
             .margin(4)
@@ -321,7 +256,7 @@ impl Console {
             .width(5);
 
         // Container to style it.
-        let container = Container::new(entries)
+        let container = Container::new(self.inner.clone())
             .style( (*self.theme.topbar).clone() )
             .width(Length::Fill);
 
@@ -330,16 +265,5 @@ impl Console {
             .height(Length::Fill)
             .width(Length::Fill)
             .id(self.scrollid.clone())
-    }
-
-    /// Rebuilds the list of entries to display.
-    /// Filters the index of all the entries that match the currently applied
-    /// filters. This list will be used to select which entries to display.
-    fn rebuild(&mut self) {
-        self.selected = self.entries.iter()
-            .enumerate()
-            .filter(|(_, e)| e.matches(self.level, self.source))
-            .map(|(i, _)| i)
-            .collect();
     }
 }

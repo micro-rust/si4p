@@ -225,7 +225,10 @@ impl App for Application {
             Command::perform(async move { reference.rebuild().await }, |_| Message::None)
         };
 
-        (app, Command::batch([library]))
+        // Create a test multiline console entry.
+        let multiline = Command::perform( async move {}, |_| crate::common::Entry::error( crate::common::Source::Host, String::from("This\nis\na\nmultiline\nentry") ).into() );
+
+        (app, Command::batch([library, multiline]))
     }
 
     fn title(&self) -> String {

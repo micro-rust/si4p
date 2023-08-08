@@ -16,7 +16,7 @@ pub enum Source {
 
 impl Source {
     /// How to display the source in the console.
-    pub(super) fn display(&self) -> &str {
+    pub fn display(&self) -> &'static str {
         match self {
             Source::All    => " ALL  ",
             Source::Host   => " HOST ",

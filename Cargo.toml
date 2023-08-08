@@ -28,6 +28,7 @@ optional = true
 features = [
     "wgpu", "tokio", "system",
     "palette", "debug", "lazy",
+    "advanced",
 ]
 
 [dependencies.iced_native]
