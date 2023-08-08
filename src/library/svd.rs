@@ -158,6 +158,22 @@ impl SVDLibrary {
 
         // Build the search engine.
         self.engine();
+
+        // Estimate the final size of the search engine.
+        let mut bytes = 0;
+
+        for (key, list) in self.search.iter() {
+            // Add the length of the key.
+            bytes += key.len();
+
+            // Add the usizes.
+            bytes += list.len() * core::mem::size_of::<usize>();
+        }
+
+        // Add the sizes of the string pointers.
+        bytes += core::mem::size_of::<String>() * self.search.len();
+
+        println!("Search engine is {} kB ({} entries)", bytes as f64 / 1024.0, self.search.len());
     }
 
     /// Checks if the file is a 'contents.txt' file and parses it.
@@ -280,6 +296,7 @@ impl SVDLibrary {
             }
         }
 
+        // Save the search engine.
         self.search = suffix;
     }
 
