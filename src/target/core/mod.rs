@@ -57,7 +57,7 @@ impl CoreInformation {
                     let new = Self {
                         index: *index,
                         architecture: core.architecture(),
-                        coretype: core.core_type(),
+                        coretype: *coretype,
                         cregs,
                         fregs,
                         status: CoreStatus::Unknown,
