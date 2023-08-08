@@ -3,15 +3,15 @@
 
 
 use super::{
-    Entry, Level, Source,
+    Level, Source,
 
-    super::Message as Event,
+    super::Message,
 };
 
 
 
 #[derive(Clone, Debug)]
-pub enum Message {
+pub enum Event {
     /// The level filter changed.
     FilterLevel( Level ),
 
@@ -19,8 +19,8 @@ pub enum Message {
     FilterSource( Source ),
 }
 
-impl Into<Event> for Message {
-    fn into(self) -> Event {
-        Event::Console( self )
+impl Into<Message> for Event {
+    fn into(self) -> Message {
+        Message::Console( self )
     }
 }
