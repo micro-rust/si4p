@@ -15,7 +15,7 @@ use std::{
 #[derive(Clone, Debug)]
 pub enum Message {
     /// An internal message for the console.
-    Console( super::console::Message ),
+    Console( super::console::Event ),
 
     /// A new console entry.
     ConsoleEntry( crate::common::Entry ),
@@ -27,7 +27,7 @@ pub enum Message {
     Right( super::right::Event ),
 
     
-    Controller( super::controller::Event ),
+    //Controller( super::controller::Event ),
 
     /// A new USB command was emitted.
     USB( crate::usb::Command ),
