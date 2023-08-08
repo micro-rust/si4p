@@ -3,19 +3,19 @@
 
 
 mod entries;
-mod message;
+mod event;
 mod theme;
 
 
 
+pub use event::Event;
+
 use iced::{
     BorderRadius, Command, Length,
 
-    alignment::Horizontal,
-
     widget::{
         Column, Container, PickList,
-        Row, Scrollable, Text,
+        Row, Scrollable,
 
         scrollable::{
             Id, Properties,
@@ -29,10 +29,13 @@ use theme::Theme;
 
 
 
-pub use crate::common::Entry;
-pub use crate::common::Level;
-pub use crate::common::Source;
-pub use message::Message;
+pub use crate::{
+    common::{
+        Entry, Level, Source,
+    },
+
+    gui::Message,
+};
 
 
 
@@ -60,9 +63,9 @@ impl Console {
     }
 
     /// Updates the console.
-    pub(super) fn update(&mut self, message: Message) -> Command<super::Message> {
-        match message {
-            Message::FilterLevel(level) => {
+    pub(super) fn update(&mut self, event: Event) -> Command<Message> {
+        match event {
+            Event::FilterLevel(level) => {
                 // Set the new level filter.
                 self.inner.level = level;
 
@@ -70,7 +73,7 @@ impl Console {
                 self.inner.rebuild();
             },
 
-            Message::FilterSource(source) => {
+            Event::FilterSource(source) => {
                 // Set the new source filter.
                 self.inner.source = source;
 
@@ -83,7 +86,7 @@ impl Console {
     }
 
     /// Builds the view of the `Console`.
-    pub(super) fn view(&self) -> iced::Element<super::Message> {
+    pub(super) fn view(&self) -> iced::Element<Message> {
         // Build the topbar.
         let topbar = self.topbar();
 
@@ -203,7 +206,7 @@ impl Console {
     /// Builds the topbar.
     /// Creates a picklist for the level filter and a picklist for the source
     /// filter, displaying them in a row.
-    fn topbar(&self) -> Container<super::Message> {
+    fn topbar(&self) -> Container<Message> {
         // List of all entry levels.
         const LEVELS: [Level; 5] = [
             Level::Error, Level::Warn, Level::Info, Level::Debug, Level::Trace,
@@ -218,7 +221,7 @@ impl Console {
         let level = PickList::new(
             &LEVELS[..],
             Some( self.inner.level.clone() ),
-            |l| Message::FilterLevel(l).into(),
+            |l| Event::FilterLevel(l).into(),
         )
         .style( (*self.theme.picklist).clone() );
 
@@ -226,7 +229,7 @@ impl Console {
         let source = PickList::new(
             &SOURCE[..],
             Some( self.inner.source.clone() ),
-            |s| Message::FilterSource(s).into(),
+            |s| Event::FilterSource(s).into(),
         )
         .style( (*self.theme.picklist).clone() );
 
@@ -244,10 +247,8 @@ impl Console {
     /// Builds the entries' content.
     /// Takes all the entries selected by the current filter and displays their
     /// information in a single row within a scrollable section.
-    fn content(&self) -> Scrollable<super::Message> {
-        use iced::widget::scrollable::{
-            Direction, Scrollable,
-        };
+    fn content(&self) -> Scrollable<Message> {
+        use iced::widget::scrollable::Direction;
 
         // Build the scrollable properties.
         let properties = Properties::new()
