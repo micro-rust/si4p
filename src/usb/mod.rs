@@ -54,7 +54,7 @@ lazy_static::lazy_static!{
 
 // Global list of the cores of the target.
 lazy_static::lazy_static!{
-    pub static ref CORES: RwLock<Vec<Arc<RwLock<CoreInformation>>>> = RwLock::new( Vec::new() );
+    pub static ref CORES: Arc<RwLock<Vec<Arc<RwLock<CoreInformation>>>>> = Arc::new( RwLock::new( Vec::new() ) );
 }
 
 
@@ -215,7 +215,7 @@ impl USBLogger {
 
                         // Send the rebuild command.
                         self.txmessage( Message::SetDebugProbe( info ) );
-                        self.txmessage( Message::NewDebugSession );
+                        self.txmessage( Message::RebuildDebug );
                     },
 
                     Ok(false) => {
@@ -241,6 +241,7 @@ impl USBLogger {
 
                     // Send the rebuild command.
                     self.txmessage( Message::ClearDebugProbe );
+                    self.txmessage( Message::RebuildDebug );
                 },
 
 
@@ -253,7 +254,7 @@ impl USBLogger {
 
                         // Send the rebuild command.
                         self.txmessage( Message::SetDebugTarget(target) );
-                        self.txmessage( Message::NewDebugSession );
+                        self.txmessage( Message::RebuildDebug );
                     },
 
                     Ok(false) => {
@@ -279,6 +280,7 @@ impl USBLogger {
 
                     // Send the rebuild command.
                     self.txmessage( Message::ClearDebugTarget );
+                    self.txmessage( Message::RebuildDebug );
                 },
 
                 // Request to set the debu
@@ -286,6 +288,15 @@ impl USBLogger {
                 Command::SetDefmtFile( bytes ) => match defmt::DefmtInfo::create( bytes ) {
                     Some(encoding) => self.info( format!("Created a new defmt decoder with {:?} encoding", encoding) ),
                     _ => self.error( "Failed to create a defmt decoder from the given file" ),
+                },
+
+                // Request to halt the given core.
+                Command::CoreHalt( core ) => match self.probeusb.halt( core ) {
+                    Err(e) => self.error( format!("Failed to halt core {}: {}", core, e) ),
+
+                    Ok(true) => self.info( format!("Core {} is halted", core) ),
+
+                    _ => (),
                 },
 
                 // Quit command. Close everything.

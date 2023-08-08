@@ -262,11 +262,6 @@ impl App for Application {
                 return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
             },
 
-            Message::NewDebugSession => {
-                // Rebuild the controller cores.
-                self.controller.rebuild();
-            }
-
             // New defmt file.
             Message::NewELF( bytes, path ) => {
                 // Send the USB command to parse the defmt file.
@@ -323,6 +318,11 @@ impl App for Application {
 
             // Messages about debug probes.
             // ****************************************************************
+
+            Message::RebuildDebug => {
+                // Rebuild the cores.
+                self.left.rebuild();
+            }
 
             Message::SetDebugProbe( info ) => {
                 // Notify the right sidebar.

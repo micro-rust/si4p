@@ -2,7 +2,7 @@
 
 
 
-//mod core;
+mod core;
 //mod peripherals;
 mod event;
 
@@ -20,6 +20,9 @@ use iced::{
 pub struct LeftSidebar {
     /// Pane grid structure of the left sidebar.
     panes: PaneGridState<View>,
+
+    /// Views of the cores.
+    cores: Vec<core::CoreView>,
 }
 
 impl crate::gui::common::Widget for LeftSidebar {
@@ -39,10 +42,16 @@ impl crate::gui::common::Widget for LeftSidebar {
             Length,
 
             widget::{
-                PaneGrid, Text,
+                component,
+
+                Column, PaneGrid, Scrollable, Text,
 
                 pane_grid::{
                     Content, TitleBar,
+                },
+
+                scrollable::{
+                    Direction, Properties,
                 },
             },
         };
@@ -54,7 +63,23 @@ impl crate::gui::common::Widget for LeftSidebar {
                         // Create the title bar.
                         let title_bar = TitleBar::new( Text::new("Cores") );
 
-                        let body = Text::new( "SOMETHING" );
+                        // Create the body of the cores.
+                        let body = {
+                            // Create the cores.
+                            let cores = self.cores.iter()
+                                .map(|core| component( core.clone() ) )
+                                .fold( Column::new().padding(10), |column, core| column.push(core) );
+
+                            // Create the scrollable properties.
+                            let properties = Properties::new()
+                                .scroller_width(10)
+                                .width(5)
+                                .margin(2);
+
+                            Scrollable::new( cores )
+                                .direction( Direction::Vertical( properties ) )
+                                .width( Length::Fill )
+                        };
 
                         Content::new(body)
                             .title_bar(title_bar)
@@ -99,7 +124,20 @@ impl LeftSidebar {
 
         Self {
             panes,
+            cores: Vec::new(),
         }
+    }
+
+    /// Rebuild the view of the cores.
+    pub fn rebuild(&mut self) {
+        // Get a read lock into the list of cores.
+        let cores = crate::usb::CORES.blocking_read();
+
+        // Create a list of all new cores.
+        self.cores = cores.iter()
+            .enumerate()
+            .map( |(index, arc)| core::CoreView::new( arc.clone(), index ) )
+            .collect();
     }
 }
 

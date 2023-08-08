@@ -17,6 +17,7 @@ use probe_rs::{
 use std::{
     error::Error,
     sync::Arc,
+    time::Duration,
 };
 
 use tokio::sync::RwLock;
@@ -114,6 +115,26 @@ impl ProbeHandle {
         self.session = Some(session);
 
         Ok( true )
+    }
+
+    /// Halts the given core.
+    pub fn halt(&mut self, core: usize) -> Result<bool, probe_rs::Error> {
+        // Timeout of the halt command.
+        const TIMEOUT: Duration = Duration::from_secs(1);
+
+        match &mut self.session {
+            Some(session) => {
+                // Get access to the core.
+                let mut core = session.core(core)?;
+
+                // Halt the core.
+                core.halt( TIMEOUT )?;
+
+                Ok( true )
+            },
+
+            _ => Ok( false ),
+        }
     }
 
     /// Checks for new data in the USB connection.

@@ -53,7 +53,7 @@ pub enum Message {
     /// A library rebuild is needed.
     LibraryRebuild,
 
-    NewDebugSession,
+    RebuildDebug,
 
     /// Selects the given target.
     SetDebugTarget( String ),
