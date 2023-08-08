@@ -64,7 +64,7 @@ impl Component<Message, Renderer> for ELFSelector {
         };
 
         // Build the select file button.
-        let mut select = Button::new( "Select ELF" )
+        let select = Button::new( "Select ELF" )
             .width( Length::FillPortion(65) )
             .on_press( Event::Select );
 
