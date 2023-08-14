@@ -7,6 +7,8 @@ use crate::{
         Entry, Source,
     },
 
+    gui::Message,
+
     target::core::RegisterType,
 };
 
@@ -20,7 +22,11 @@ use std::{
     time::Duration,
 };
 
-use tokio::sync::RwLock;
+use tokio::sync::{
+    RwLock,
+
+    mpsc::Sender,
+};
 
 
 
@@ -221,9 +227,119 @@ impl ProbeHandle {
         Ok( Some( messages ) )
     }
 
+    /// Flashes the given ELF file to the target.
+    pub fn flash(&mut self, bytes: &[u8], console: &mut Sender<Message>) {
+        use probe_rs::flashing::{ DownloadOptions, FlashProgress, ProgressEvent, };
+        use std::io::Cursor;
+
+        // Default timeout for flash operations.
+        const TIMEOUT: Duration = Duration::from_secs(1);
+
+        // Log the start of the flash process.
+        let _ = console.try_send( Self::info( "Flashing the target" ).into() );
+
+        // Check that there is a session open.
+        let session = match &mut self.session {
+            None => {
+                // Send an error message.
+                let _ = console.try_send( Self::error( "Failed to flash the target : No open session available" ).into() );
+
+                return;
+            },
+
+            Some(session) => session,
+        };
+
+        // Log the start of the core halting.
+        let _ = console.try_send( Self::debug( "Halting all cores" ).into() );
+
+        // Halt all cores.
+        let cores = session.list_cores();
+
+        for (core_index, _) in cores {
+            // Get the core and halt it.
+            let _ = match session.core(core_index) {
+                Ok(mut core) => match core.halt( TIMEOUT ) {
+                    Err(e) => console.try_send( Self::warn( format!("Failed to halt core {} : {}", core_index, e) ).into() ),
+
+                    _ => console.try_send( Self::debug( format!("Halted core {}", core_index) ).into() ),
+                },
+
+                Err(e) => console.try_send( Self::warn( format!("Failed to halt core {} : {}", core_index, e) ).into() ),
+            };
+        }
+
+        // At least we have tried to nicely halt all cores.
+        // Log the start of the flash process.
+        let _ = console.try_send( Self::debug( "Downloading executable file" ).into() );
+
+        // Get the flash loader.
+        let mut loader = session.target().flash_loader();
+
+        // Add the ELF file to the flash loader.
+        let _ = match loader.load_elf_data( &mut Cursor::new(bytes) ) {
+            Err(e) => {
+                let _ = console.try_send( Self::error( format!("Failed to parse ELF data for flashing : {}", e) ).into() );
+                return;
+            },
+            Ok(_) => console.try_send( Self::debug( "Successfully parsed ELF data for flashing" ).into() ),
+        };
+
+        // Create a console copy.
+        let copy = console.clone();
+
+        // Create the flash progress handler.
+        let handler = move |event| {
+            let _ = match event {
+                ProgressEvent::Initialized { flash_layout } => copy.try_send( Self::debug( format!("Initiated flashing : {:?}", flash_layout) ).into() ),
+
+                ProgressEvent::StartedErasing => copy.try_send( Self::debug( "Start erasing flash" ).into() ),
+                ProgressEvent::StartedFilling => copy.try_send( Self::debug( "Start filling flash" ).into() ),
+                ProgressEvent::StartedProgramming => copy.try_send( Self::debug( "Start programming flash" ).into() ),
+
+                ProgressEvent::FailedErasing => copy.try_send( Self::error( "Failed erasing flash" ).into() ),
+                ProgressEvent::FailedFilling => copy.try_send( Self::error( "Failed filling flash" ).into() ),
+                ProgressEvent::FailedProgramming => copy.try_send( Self::error( "Failed programming flash" ).into() ),
+
+                ProgressEvent::FinishedErasing => copy.try_send( Self::info( "Finished erasing flash" ).into() ),
+                ProgressEvent::FinishedFilling => copy.try_send( Self::info( "Finished filling flash" ).into() ),
+                ProgressEvent::FinishedProgramming => copy.try_send( Self::info( "Finished programming flash" ).into() ),
+
+                ProgressEvent::SectorErased { size, time } => copy.try_send( Self::debug( format!("Erased sector ({} bytes) in {} ms", size, time.as_millis()) ).into() ),
+                ProgressEvent::PageFilled { size, time } => copy.try_send( Self::debug( format!("Filled page ({} bytes) in {} ms", size, time.as_millis()) ).into() ),
+                ProgressEvent::PageProgrammed { size, time } => copy.try_send( Self::debug( format!("Programmed page ({} bytes) in {} ms", size, time.as_millis()) ).into() ),
+
+                ProgressEvent::DiagnosticMessage { message } => copy.try_send( Self::info( format!("Flash programmer message: {}", message) ).into() ),
+            };
+        };
+
+        // Create the download options.
+        let mut options = DownloadOptions::new();
+        options.progress = Some( FlashProgress::new(handler) );
+
+        // Log the start of the flash process.
+        let _ = console.try_send( Self::debug( "Flashing target" ).into() );
+
+        // Commit the download.
+        let _ = match loader.commit(session, options) {
+            Err(e) => console.try_send( Self::error( format!("Flashing failed : {}", e) ).into() ),
+            Ok(_) => console.try_send( Self::info("Successfully flashed target").into() ),
+        };
+    }
+
+    /// Creates a debug message.
+    fn debug<S>(text: S) -> Entry where String: From<S> {
+        Entry::debug( Source::Host, String::from(text) )
+    }
+
     /// Creates an error message.
     fn error<S>(text: S) -> Entry where String: From<S> {
         Entry::error( Source::Host, String::from(text) )
+    }
+
+    /// Creates an info message.
+    fn info<S>(text: S) -> Entry where String: From<S> {
+        Entry::info( Source::Host, String::from(text) )
     }
 
     /// Creates a warn message.

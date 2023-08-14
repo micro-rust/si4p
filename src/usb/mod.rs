@@ -312,11 +312,7 @@ impl USBLogger {
 
                 // Flashes the current executable file.
                 Command::Flash => match &self.executable {
-                    Some(bytes) => match self.probeusb.flash(bytes, &mut self.console) {
-                        Err(e) => self.error( format!("Failed to flash executable: {}", e) ),
-                        Ok(_) => self.info( "Successfully flashed executable" ),
-                    },
-
+                    Some(bytes) => self.probeusb.flash(bytes, &mut self.console),
                     _ => self.error( "No ELF flash executable available to the USB controller" ),
                 },
 
