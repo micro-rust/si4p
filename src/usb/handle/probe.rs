@@ -137,6 +137,26 @@ impl ProbeHandle {
         }
     }
 
+    /// Runs the given core.
+    pub fn run(&mut self, core: usize) -> Result<bool, probe_rs::Error> {
+        // Timeout of the halt command.
+        const TIMEOUT: Duration = Duration::from_secs(1);
+
+        match &mut self.session {
+            Some(session) => {
+                // Get access to the core.
+                let mut core = session.core(core)?;
+
+                // Run the core.
+                core.run()?;
+
+                Ok( true )
+            },
+
+            _ => Ok( false ),
+        }
+    }
+
     /// Checks for new data in the USB connection.
     pub fn update(&mut self) -> Result<Option<Vec<Entry>>, Entry> {
         // If there is no active session return.
