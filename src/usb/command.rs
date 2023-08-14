@@ -4,10 +4,7 @@
 
 use probe_rs::DebugProbeInfo;
 
-use super::{
-    common::USBTarget,
-    device::USBDevice,
-};
+use super::common::USBTarget;
 
 
 
