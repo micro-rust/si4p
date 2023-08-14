@@ -80,6 +80,9 @@ pub struct USBLogger {
     /// Hotplug handler.
     hotplug: hotplug::Hotplug,
 
+    /// The current executable file.
+    executable: Option<Arc<[u8]>>,
+
     /// Duration of the sleep interval.
     interval: Duration,
 }
@@ -113,6 +116,7 @@ impl USBLogger {
             defmtusb: handle::DefmtHandle::new(),
             probeusb: handle::ProbeHandle::new(),
             hotplug: hotplug::Hotplug::new( CONNECTED.clone() ),
+            executable: None,
             interval: Duration::from_millis(1000),
         };
 
@@ -196,6 +200,10 @@ impl USBLogger {
 
             // Check which command was received.
             match cmd {
+
+                // Commands to configure the connections and target.
+                // ************************************************************************
+
                 // Request to open a defmt connection.
                 Command::DefmtOpen(target) => match self.defmtusb.open(target) {
                     Ok(maybe) => match maybe {
@@ -283,11 +291,44 @@ impl USBLogger {
                     self.txmessage( Message::RebuildDebug );
                 },
 
+                // ************************************************************************
+
+
+
                 // Request to set the debu
                 // Sets the active deftm file.
-                Command::SetDefmtFile( bytes ) => match defmt::DefmtInfo::create( bytes ) {
-                    Some(encoding) => self.info( format!("Created a new defmt decoder with {:?} encoding", encoding) ),
-                    _ => self.error( "Failed to create a defmt decoder from the given file" ),
+                Command::SetExecutableFile( bytes ) => {
+                    // Set the executable.
+                    self.executable = Some( bytes.clone() );
+
+                    // Create a defmt decoder.
+                    match defmt::DefmtInfo::create( bytes ) {
+                        Some(encoding) => self.info( format!("Created a new defmt decoder with {:?} encoding", encoding) ),
+                        _ => self.error( "Failed to create a defmt decoder from the given file" ),
+                    }
+                },
+
+
+
+                // Core control and manipulation.
+                // ************************************************************************
+
+                // Request to halt the given core.
+                Command::CoreHalt( core ) => match self.probeusb.halt( core ) {
+                    Err(e) => self.error( format!("Failed to halt core {}: {}", core, e) ),
+
+                    Ok(true) => self.info( format!("Core {} is halted", core) ),
+
+                    _ => (),
+                },
+
+                // Request to run the given core.
+                Command::CoreRun( core ) => match self.probeusb.run( core ) {
+                    Err(e) => self.error( format!("Failed to run core {}: {}", core, e) ),
+
+                    Ok(true) => self.info( format!("Core {} is running", core) ),
+
+                    _ => (),
                 },
 
                 // Request to halt the given core.
@@ -299,8 +340,17 @@ impl USBLogger {
                     _ => (),
                 },
 
+                // ************************************************************************
+
+
+
+                // Miscellaneous commands.
+                // ************************************************************************
+
                 // Quit command. Close everything.
                 Command::Quit => return true,
+
+                // ************************************************************************
 
                 _ => (),
             }
