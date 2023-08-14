@@ -10,25 +10,30 @@ use super::Message;
 
 /// Async function to select an ELF file.
 pub async fn selectELF(maybe: Option<PathBuf>) -> Message {
+    use rfd::FileDialog;
+
     // Extract the path.
     let path = match maybe {
         Some(path) => path,
         _ => PathBuf::from("/"),
     };
 
-    // Get the file.
-    let maybe: Option<rfd::FileHandle> = rfd::AsyncFileDialog::new()
-        .set_directory( path )
-        .pick_file()
-        .await;
+    // Spawn the sync thread to select the file.
+    let thread = tokio::task::spawn_blocking(move || {
+        return FileDialog::new()
+            .set_directory(path)
+            .pick_file()
+    });
 
-    // Check if anything was chosen.
-    let path = match maybe.as_ref() {
-        None => return Message::None,
-        Some(f) => f.path().clone(),
-    };
+    // Check the result of the file pick.
+    match thread.await {
+        Ok(maybe) => match maybe {
+            Some(path) => Message::LoadELF( PathBuf::from( path ) ),
+            None => Message::None,    
+        },
 
-    Message::LoadELF( PathBuf::from( path ) )
+        Err(e) => Message::None,
+    }
 }
 
 
