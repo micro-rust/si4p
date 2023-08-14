@@ -30,6 +30,8 @@ impl Component<Message, Renderer> for ELFSelector {
     type State = ();
 
     fn update(&mut self, _: &mut Self::State, event: Self::Event) -> Option<Message> {
+        use crate::usb::Command;
+
         match event {
             Event::Select => match &self.path {
                 Some(path) => {
@@ -49,7 +51,7 @@ impl Component<Message, Renderer> for ELFSelector {
                 None => None,
             },
 
-            Event::Flash => Some( Message::FlashELF ),
+            Event::Flash => Some( Command::Flash.into() ),
         }
     }
 
