@@ -179,14 +179,9 @@ impl Component<Message, Renderer> for CoreView {
             let halt = Button::new( "Halt" )
                 .on_press( Event::Halt );
 
-            // Create the reset button.
-            let reset = Button::new( "Reset" )
-                .on_press( Event::Reset );
-
             Row::new()
                 .push( run )
                 .push( halt )
-                .push( reset )
         };
 
         // Create the list of registers.

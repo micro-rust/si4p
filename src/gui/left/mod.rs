@@ -44,7 +44,7 @@ impl crate::gui::common::Widget for LeftSidebar {
             widget::{
                 component,
 
-                Column, PaneGrid, Scrollable, Text,
+                Button, Column, PaneGrid, Scrollable, Row, Text,
 
                 pane_grid::{
                     Content, TitleBar,
@@ -54,6 +54,22 @@ impl crate::gui::common::Widget for LeftSidebar {
                     Direction, Properties,
                 },
             },
+        };
+
+        // Create the topbar.
+        let topbar = {
+            // Create the flash button.
+            let flash = Button::new( "Flash" )
+                .width(Length::FillPortion(1));
+
+            // Create the reset button.
+            let reset = Button::new( "Reset" )
+                .width(Length::FillPortion(1));
+
+            Row::new()
+                .padding(5)
+                .push( flash )
+                .push( reset )
         };
 
         // Create the panes
@@ -96,11 +112,13 @@ impl crate::gui::common::Widget for LeftSidebar {
                     },
                 }
             })
-            .on_resize(10, |event| Event::PaneGridResize(event).into());
-
-        panes
             .height(Length::Fill)
             .width(Length::Fill)
+            .on_resize(10, |event| Event::PaneGridResize(event).into());
+
+        Column::new()
+            .push(topbar)
+            .push(panes)
             .into()
     }
 }
