@@ -2,6 +2,10 @@
 
 
 
+use crate::common::{
+    Entry, Source,
+};
+
 use std::path::PathBuf;
 
 use super::Message;
@@ -27,12 +31,12 @@ pub async fn selectELF(maybe: Option<PathBuf>) -> Message {
 
     // Check the result of the file pick.
     match thread.await {
+        Err(e) => Message::ConsoleEntry( Entry::error( Source::Host, format!("Failed to select an executable file: {}", e) ) ),
+
         Ok(maybe) => match maybe {
             Some(path) => Message::LoadELF( PathBuf::from( path ) ),
             None => Message::None,    
         },
-
-        Err(e) => Message::None,
     }
 }
 
