@@ -13,6 +13,10 @@ use super::{
 
 #[derive(Clone, Debug)]
 pub enum Command {
+
+    // Commands to configure the connections and target.
+    // ************************************************************************
+
     /// Open the device with the given VID, PID and (optional) serial number.
     DefmtOpen( USBTarget ),
 
@@ -31,14 +35,25 @@ pub enum Command {
     /// Resets the debug target.
     ClearDebugTarget,
 
+    // ************************************************************************
+
+
+
+    // File commands.
+    // ************************************************************************
+
     /// Sets the defmt file.
-    SetDefmtFile( std::sync::Arc<[u8]> ),
+    SetExecutableFile( std::sync::Arc<[u8]> ),
 
-    /// A warning that the hotplug handler was dropped.
-    HotplugDropped,
+    /// Flashes the file.
+    Flash,
 
-    /// Contains the information of a new connected USB device.
-    NewConnection( USBDevice ),
+    // ************************************************************************
+
+
+
+    // Core control and manipulation.
+    // ************************************************************************
 
     /// Halts the given core.
     CoreHalt( usize ),
@@ -49,8 +64,17 @@ pub enum Command {
     /// Runs the given core.
     CoreRun( usize ),
 
+    // ************************************************************************
+
+
+
+    // Miscellaneous commands.
+    // ************************************************************************
+
     /// Signal to close the thread.
     Quit,
+
+    // ************************************************************************
 }
 
 impl Into<crate::gui::Message> for Command {
