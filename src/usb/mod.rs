@@ -295,8 +295,10 @@ impl USBLogger {
 
 
 
-                // Request to set the debu
-                // Sets the active deftm file.
+                // File commands.
+                // ************************************************************************
+
+                // Sets the active executable file.
                 Command::SetExecutableFile( bytes ) => {
                     // Set the executable.
                     self.executable = Some( bytes.clone() );
@@ -307,6 +309,18 @@ impl USBLogger {
                         _ => self.error( "Failed to create a defmt decoder from the given file" ),
                     }
                 },
+
+                // Flashes the current executable file.
+                Command::Flash => match &self.executable {
+                    Some(bytes) => match self.probeusb.flash(bytes, &mut self.console) {
+                        Err(e) => self.error( format!("Failed to flash executable: {}", e) ),
+                        Ok(_) => self.info( "Successfully flashed executable" ),
+                    },
+
+                    _ => self.error( "No ELF flash executable available to the USB controller" ),
+                },
+
+                // ************************************************************************
 
 
 
