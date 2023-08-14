@@ -369,7 +369,7 @@ impl Widget<Message, Renderer> for Entries {
             let entry = entries.get(*index).expect( "Console entries and selected entries list are desynchronized" );
 
             // Add the height of this line.
-            height += self.textheight(renderer, limits.max(), entry);
+            height += self.textheight(renderer, limits.max(), entry) + 1.0;
         }
 
         Node::new( Size { height, width: limits.max().width, } )
