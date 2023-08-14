@@ -254,7 +254,7 @@ impl App for Application {
             // New defmt file.
             Message::NewELF( bytes, path ) => {
                 // Send the USB command to parse the defmt file.
-                self.usbcommand( USBCommand::SetDefmtFile( bytes ) );
+                self.usbcommand( USBCommand::SetExecutableFile( bytes ) );
 
                 // Send the path to be reloaded.
                 //self.usbcfg.setpath( path );
@@ -393,7 +393,7 @@ impl App for Application {
         }
 
         // Create the ticker for updating the libraries.
-        let libticker = iced::time::every( core::time::Duration::from_secs(10) ).map(|_| Message::LibraryRebuild);
+        let libticker = iced::time::every( core::time::Duration::from_secs(60) ).map(|_| Message::LibraryRebuild);
         subscriptions.push( libticker );
 
         iced::Subscription::batch( subscriptions )
