@@ -237,19 +237,10 @@ impl App for Application {
             //Message::USBConfiguration( inner ) => return self.usbcfg.update( inner ),
 
 
-            // Selects a new defmt file.
-            Message::SelectELF( maybe ) => return Command::perform( commands::elf::selectELF(maybe), |m| m ),
 
-            // Loads a defmt file.
-            Message::LoadELF( path ) => return Command::perform( commands::elf::loadELF(path) , |m| m),
 
-            // Reloads the library.
-            Message::LibraryRebuild => {
-                // Clone the ARC.
-                let reference = Arc::clone( &self.library);
-
-                return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
-            },
+            // Messages about files.
+            // ****************************************************************
 
             // New defmt file.
             Message::NewELF( bytes, path ) => {
@@ -261,6 +252,12 @@ impl App for Application {
                 self.right.setpath( path.clone() );
             },
 
+            // Selects a new defmt file.
+            Message::SelectELF( maybe ) => return Command::perform( commands::elf::selectELF(maybe), |m| m ),
+
+            // Loads a defmt file.
+            Message::LoadELF( path ) => return Command::perform( commands::elf::loadELF(path) , |m| m),
+
             // Set the current SVD in the peripheral selector.
             Message::NewSVD( peripherals, _ ) => {
                 // Get the peripherals.
@@ -270,10 +267,21 @@ impl App for Application {
                 //self.controller.target(peripherals);
             },
 
+            // Reloads the library.
+            Message::LibraryRebuild => {
+                // Clone the ARC.
+                let reference = Arc::clone( &self.library);
+
+                return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
+            },
+
+
+
             // Global UI view messages.
             // ****************************************************************
 
             Message::PaneGridResize( resize ) => self.panes.resize(&resize.split, resize.ratio.clamp(0.15, 0.85)),
+
 
 
             // Messages about the USB.
@@ -294,6 +302,8 @@ impl App for Application {
                 self.router = None;
             },
 
+
+
             // Messages of each of the widget views.
             // ****************************************************************
 
@@ -304,6 +314,8 @@ impl App for Application {
             Message::Left( event ) => return self.left.update(event),
 
             Message::ConsoleEntry( entry ) => self.console.push( entry ),
+
+
 
             // Messages about debug probes.
             // ****************************************************************
@@ -339,7 +351,10 @@ impl App for Application {
                 self.right.deselect();
             },
 
-            _ =>(),
+            // Miscellaneous mesasges.
+            // ****************************************************************
+
+            Message::None => (),
         }
 
         Command::none()
