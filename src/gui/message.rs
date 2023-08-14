@@ -32,14 +32,14 @@ pub enum Message {
     /// A new USB command was emitted.
     USB( crate::usb::Command ),
 
-    /// Indicates a request for a USB defmt connection.
-    DefmtConnect( usize, u8, u8, u8, u8, (u8, u8) ),
+    // Indicates a request for a USB defmt connection.
+    //DefmtConnect( usize, u8, u8, u8, u8, (u8, u8) ),
 
     /// Select defmt file.
     SelectELF( Option<PathBuf> ),
 
-    /// Flashes the current ELF file.
-    FlashELF,
+    // Flashes the current ELF file.
+    //FlashELF,
 
     /// Loads the given defmt file.
     LoadELF( PathBuf ),
@@ -61,8 +61,8 @@ pub enum Message {
     /// Deselects the current target.
     ClearDebugTarget,
 
-    /// Indicates a change in the expansion status of a USB config display.
-    USBConfigExpanded( (u16, u16), u8, bool ),
+    // Indicates a change in the expansion status of a USB config display.
+    //USBConfigExpanded( (u16, u16), u8, bool ),
 
     /// A main view pane grid was resized.
     PaneGridResize( iced::widget::pane_grid::ResizeEvent ),
