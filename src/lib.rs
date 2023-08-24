@@ -10,3 +10,12 @@ pub mod target;
 
 //#[cfg(feature = "gui")]
 pub mod gui;
+
+
+
+use std::sync::atomic::AtomicBool;
+
+
+
+/// Global quit signal.
+pub static QUIT: AtomicBool = AtomicBool::new(false);
