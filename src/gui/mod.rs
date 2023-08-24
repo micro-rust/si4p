@@ -138,8 +138,21 @@ impl App for Application {
     fn new(_: Self::Flags) -> (Self, Command<Message>) {
         use crate::usb::USBLogger;
 
-        // Create the library.
+        // Create the messages MPSC pair.
+        let (ctx, crx) = mpsc::channel(128);
+
+        // Create the library and the watchers.
         let library = Arc::new( super::library::Library::create() );
+        // SVD watcher.
+        {
+            // Get the path.
+            let path = library.svdpath();
+
+            // Clone the sender.
+            let channel = ctx.clone();
+
+            std::thread::spawn(move || commands::svd::watch(path, channel));
+        }
 
         // Build the application default theme.
         let theme = {
@@ -158,9 +171,6 @@ impl App for Application {
 
         // Create the console.
         let console = console::Console::new( theme.clone() );
-
-        // Create the MPSC pair.
-        let (ctx, crx) = mpsc::channel(128);
 
         // Create the console router.
         let router = {
@@ -273,6 +283,14 @@ impl App for Application {
                 let reference = Arc::clone( &self.library);
 
                 return Command::perform(async move { reference.rebuild().await }, |_| Message::None)
+            },
+
+            // Reloads the SVD library.
+            Message::LibraryRebuildSVD => {
+                // Clone the ARC.
+                let reference = Arc::clone( &self.library);
+
+                return Command::perform(async move { reference.rebuildSVD().await }, |_| Message::None)
             },
 
 
@@ -406,10 +424,6 @@ impl App for Application {
         if let Some(container) = &self.router {
             subscriptions.push( unfold( 11, Arc::clone(container), Router::listen ) );
         }
-
-        // Create the ticker for updating the libraries.
-        let libticker = iced::time::every( core::time::Duration::from_secs(60) ).map(|_| Message::LibraryRebuild);
-        subscriptions.push( libticker );
 
         iced::Subscription::batch( subscriptions )
     }

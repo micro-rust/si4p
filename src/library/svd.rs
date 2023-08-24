@@ -39,6 +39,10 @@ impl SVDLibrary {
         }
     }
 
+    pub fn path(&self) -> PathBuf {
+        self.path.clone()
+    }
+
     /// Returns the file path for a given target name.
     pub fn file(&self, target: &String) -> Option<Arc<PathBuf>> {
         match self.targets.get( target ) {

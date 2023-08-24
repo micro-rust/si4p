@@ -53,6 +53,9 @@ pub enum Message {
     /// A library rebuild is needed.
     LibraryRebuild,
 
+    /// A SVD library rebuild is needed.
+    LibraryRebuildSVD,
+
     RebuildDebug,
 
     /// Selects the given target.

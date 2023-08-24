@@ -3,6 +3,10 @@
 
 
 
+#![allow(non_snake_case)]
+
+
+
 mod svd;
 
 
@@ -25,6 +29,11 @@ impl Library {
     /// Rebuilds the libraries.
     pub async fn rebuild(&self) {
         // Rebuild the SVD library.
+        self.svd.write().await.rebuild().await;
+    }
+
+    /// Rebuilds only the SVD library.
+    pub async fn rebuildSVD(&self) {
         self.svd.write().await.rebuild().await;
     }
 
@@ -67,5 +76,10 @@ impl Library {
 
         // Create the new directory.
         DirBuilder::new().create( path ).expect("Failed to create a library directory");
+    }
+
+    /// Returns the SVD path.
+    pub fn svdpath(&self) -> PathBuf {
+        self.svd.blocking_read().path()
     }
 }
