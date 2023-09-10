@@ -9,6 +9,8 @@ mod message;
 mod theme;
 //mod usbcfg;
 
+mod window;
+
 // Sidebar modules.
 mod left;
 mod right;
@@ -29,7 +31,10 @@ use iced::{
 
 pub use message::Message;
 
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::Arc
+};
 
 use tokio::sync::{
     mpsc::{
@@ -71,6 +76,13 @@ pub struct Application {
     /// Keep the theme alive until it is swapped.
     #[allow(dead_code)]
     theme: Arc<marcel::theme::Theme>,
+
+
+    /// Collection of all the currently open windows.
+    windows: HashMap<usize, window::Window>,
+
+    // Testing binary inspector.
+    bintest: Option<window::BinaryWindow>,
 }
 
 impl Application {
@@ -215,6 +227,10 @@ impl App for Application {
 
             left,
             right,
+
+            windows: HashMap::new(),
+
+            bintest: None,
         };
 
         // Create the library rebuild startup command.
@@ -236,6 +252,7 @@ impl App for Application {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         use common::Widget;
+        use window::Window;
 
         match message {
 
@@ -253,13 +270,16 @@ impl App for Application {
             // ****************************************************************
 
             // New defmt file.
-            Message::NewELF( bytes, path ) => {
+            Message::NewELF( bytes, elf, path ) => {
                 // Send the USB command to parse the defmt file.
                 self.usbcommand( USBCommand::SetExecutableFile( bytes ) );
 
                 // Send the path to be reloaded.
                 //self.usbcfg.setpath( path );
                 self.right.setpath( path.clone() );
+
+                // Set the binary inspector.
+                self.bintest = Some( window::BinaryWindow::new(0, elf, path) );
             },
 
             // Selects a new defmt file.
@@ -369,6 +389,31 @@ impl App for Application {
                 self.right.deselect();
             },
 
+            // Multi window mesasges.
+            // ****************************************************************
+
+            // Message of a binary inspection window.
+            // If the window does not exist log a warning.
+            // If the window is not a binary inspection window log an error.
+            Message::BinaryWindow(_, event) => if let Some(binary) = &mut self.bintest {
+                binary.update(event);
+            },
+
+            /*
+            Message::BinaryWindow(id, event) => match self.windows.get_mut(&id) {
+                Some(window) => match window {
+                    // Update the binary inspection window.
+                    Window::Binary( binary ) => binary.update( event ),
+
+                    // Emit an error of mismatched window ID with type.
+                    _ => (),
+                },
+
+                // Emit a warning of possible crashed or closed window.
+                _ => (),
+            },
+            */
+
             // Miscellaneous mesasges.
             // ****************************************************************
 
@@ -401,7 +446,10 @@ impl App for Application {
 
             PaneGridView::LeftSidebar => Content::new( self.left.view() ),
 
-            _ => Content::new( iced::widget::Column::new() ),
+            PaneGridView::Main => match &self.bintest {
+                Some(view) => Content::new( view.view() ),
+                _ => Content::new( iced::widget::Column::new() ),
+            },
         })
         .height(Length::Fill)
         .width(Length::Fill)

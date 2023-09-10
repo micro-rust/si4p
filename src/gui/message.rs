@@ -45,7 +45,7 @@ pub enum Message {
     LoadELF( PathBuf ),
 
     /// A new defmt file was picked.
-    NewELF( Arc<[u8]>, PathBuf ),
+    NewELF( Arc<[u8]>, Arc<micro_elf::elf::ELFObject<Arc<[u8]>>>, PathBuf ),
 
     /// A new SVD file was picked.
     NewSVD( Vec<Arc<Peripheral>>, PathBuf, ),
@@ -88,6 +88,10 @@ pub enum Message {
     /// No message emitted.
     /// Placeholder for functions with mandatory return message.
     None,
+
+
+    /// Binary window events.
+    BinaryWindow( usize, super::window::binary::Event ),
 }
 
 
